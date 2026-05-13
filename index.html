@@ -117,6 +117,9 @@
 
     .section-toggle h6 {
       margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      color: #212529;
     }
 
     .section-content {
@@ -230,6 +233,7 @@
     .historico-meses-card h6 {
       color: #0d6efd;
       font-weight: 800;
+      font-size: 18px;
     }
 
     .historico-ano {
@@ -319,102 +323,73 @@
     <div class="row">
 
       <!-- FORM -->
-      <div class="col-12 col-md-5 bloco-esquerda">
-        <div class="card p-3 shadow-sm border-0 historico-meses-card">
-          <h6 class="mb-2"><i class="bi bi-calendar3"></i> Meses</h6>
-          <div id="historicoMeses"></div>
-        </div>
+      <div class="col-12 col-md-5">
+        <div class="bloco-esquerda">
+          <div class="card p-3 shadow-sm border-0 historico-meses-card">
+            <h6 class="mb-2"><i class="bi bi-calendar3"></i> Meses</h6>
+            <div id="historicoMeses"></div>
+          </div>
 
-        <div class="card p-3 shadow-sm border-0 form-compras-card">
+          <div class="card p-3 shadow-sm border-0 form-compras-card">
 
-          <button type="button" class="section-toggle" onclick="toggleSecao('secaoAdicionar', 'iconeAdicionar')">
-            <h6><i class="bi bi-plus-circle"></i> Adicionar compras</h6>
-            <i id="iconeAdicionar" class="bi bi-chevron-up"></i>
-          </button>
-
-          <div id="secaoAdicionar" class="section-content">
-
-            <select id="cartao" class="form-select mb-2">
-              <option>Itau</option>
-              <option>Carrefour</option>
-            </select>
-
-            <select id="tipo" class="form-select mb-2"></select>
-
-            <input id="descricao" class="form-control mb-2" placeholder="Descrição" autocapitalize="words">
-            <div class="invalid-feedback">
-              Informe a descrição
-            </div>
-
-            <input id="valor" class="form-control mb-2" placeholder="Valor" inputmode="decimal" pattern="[0-9,.]*"
-              oninput="formatarValor(this)">
-            <div class="invalid-feedback">
-              Informe o valor
-            </div>
-
-            <input id="parcelas" type="number" class="form-control mb-2" placeholder="Parcelas">
-
-            <input id="data" type="date" class="form-control mb-3">
-
-            <div class="d-flex gap-2">
-
-              <button id="btnSalvar" onclick="salvar()" class="btn btn-primary w-100 rounded-pill">
-                <i class="bi bi-plus"></i> Adicionar
-              </button>
-
-              <button id="btnCancelar" onclick="cancelarEdicao()" class="btn btn-secondary w-100 rounded-pill d-none">
-                Cancelar
-              </button>
-
-            </div>
-
-            <input type="file" id="arquivoExcel" class="d-none" accept=".xlsx" onchange="importarExcel(event)">
-
-            <button type="button" onclick="arquivoExcel.click()"
-              class="btn btn-outline-success w-100 rounded-pill mt-2">
-              <i class="bi bi-file-earmark-excel"></i> Importar Excel
+            <button type="button" class="section-toggle" onclick="toggleSecao('secaoAdicionar', 'iconeAdicionar')">
+              <h6><i class="bi bi-plus-circle"></i> Adicionar compras</h6>
+              <i id="iconeAdicionar" class="bi bi-chevron-up"></i>
             </button>
 
-            <button type="button" onclick="deletarComprasDoMes()" class="btn btn-outline-danger w-100 rounded-pill mt-2">
-              <i class="bi bi-trash3"></i> Excluir Compras do Mês
-            </button>
-            <div class="card border-0 bg-light-subtle mt-3">
-              <div class="p-3">
-                <h6 class="mb-2"><i class="bi bi-speedometer2"></i> Limitador de orçamento</h6>
-                <select id="orcamentoTipoAlvo" class="form-select mb-2" onchange="atualizarCampoOrcamento()">
-                  <option value="categoria">Categoria</option>
-                  <option value="descricao">Descrição</option>
-                </select>
-                <select id="orcamentoCategoria" class="form-select mb-2"></select>
-                <input id="orcamentoDescricao" class="form-control mb-2 d-none" placeholder="Descrição para acompanhar">
-                <input id="orcamentoValor" class="form-control mb-2" placeholder="Valor do orçamento" inputmode="decimal" pattern="[0-9,.]*" oninput="formatarValor(this)">
-                <button type="button" onclick="salvarOrcamento()" class="btn btn-outline-warning w-100 rounded-pill">
-                  <i class="bi bi-plus-circle"></i> Salvar orçamento
-                </button>
+            <div id="secaoAdicionar" class="section-content">
+
+              <select id="cartao" class="form-select mb-2">
+                <option>Itau</option>
+                <option>Carrefour</option>
+              </select>
+
+              <select id="tipo" class="form-select mb-2"></select>
+
+              <input id="descricao" class="form-control mb-2" placeholder="Descrição" autocapitalize="words">
+              <div class="invalid-feedback">
+                Informe a descrição
               </div>
-            </div>
-            <div class="card border-0 bg-light-subtle mt-3">
-              <div class="p-3">
-                <h6 class="mb-2"><i class="bi bi-calendar2-week"></i> Fechamento do cartão</h6>
-                <select id="fechamentoCartao" class="form-select mb-2" onchange="carregarFechamentoAtual()">
-                  <option>Itau</option>
-                  <option>Carrefour</option>
-                </select>
-                <input id="fechamentoDiaInicio" type="number" min="1" max="28" class="form-control mb-2" placeholder="Início da fatura: dia 3">
-                <select id="fechamentoEscopo" class="form-select mb-2" onchange="carregarFechamentoAtual()">
-                  <option value="global">Aplicar em todos os meses</option>
-                  <option value="mes">Aplicar só ao mês selecionado</option>
-                </select>
-                <button type="button" onclick="salvarFechamentoCartao()" class="btn btn-outline-primary w-100 rounded-pill">
-                  <i class="bi bi-check2-circle"></i> Salvar fechamento
-                </button>
-                <small id="resumoFechamento" class="d-block text-muted mt-2"></small>
+
+              <input id="valor" class="form-control mb-2" placeholder="Valor" inputmode="decimal" pattern="[0-9,.]*"
+                oninput="formatarValor(this)">
+              <div class="invalid-feedback">
+                Informe o valor
               </div>
+
+              <input id="parcelas" type="number" class="form-control mb-2" placeholder="Parcelas">
+
+              <input id="data" type="date" class="form-control mb-3">
+
+              <div class="d-flex gap-2">
+
+                <button id="btnSalvar" onclick="salvar()" class="btn btn-primary w-100 rounded-pill">
+                  <i class="bi bi-plus"></i> Adicionar
+                </button>
+
+                <button id="btnCancelar" onclick="cancelarEdicao()" class="btn btn-secondary w-100 rounded-pill d-none">
+                  Cancelar
+                </button>
+
+              </div>
+
+              <input type="file" id="arquivoExcel" class="d-none" accept=".xlsx" onchange="importarExcel(event)">
+
+              <button type="button" onclick="arquivoExcel.click()"
+                class="btn btn-outline-success w-100 rounded-pill mt-2">
+                <i class="bi bi-file-earmark-excel"></i> Importar Excel
+              </button>
+
+              <button type="button" onclick="deletarComprasDoMes()" class="btn btn-outline-danger w-100 rounded-pill mt-2">
+                <i class="bi bi-trash3"></i> Excluir Compras do Mês
+              </button>
+
             </div>
 
           </div>
 
         </div>
+
 
       </div>
 
@@ -469,6 +444,57 @@
             <ul id="resumoCategoria" class="list-group"></ul>
           </div>
         </div>
+
+        <div class="card p-3 shadow-sm border-0 mb-3">
+          <button type="button" class="section-toggle" onclick="toggleSecao('secaoOrcamentos', 'iconeOrcamentos')">
+            <h6><i class="bi bi-speedometer2"></i> Orçamentos</h6>
+            <i id="iconeOrcamentos" class="bi bi-chevron-up"></i>
+          </button>
+          <div id="secaoOrcamentos" class="section-content">
+            <ul id="resumoOrcamentos" class="list-group"></ul>
+          </div>
+        </div>
+
+        <div class="card p-3 shadow-sm border-0 mb-3">
+          <button type="button" class="section-toggle" onclick="toggleSecao('secaoOrcamentoConfig', 'iconeOrcamentoConfig')">
+            <h6><i class="bi bi-speedometer2"></i> Limitador de orçamento</h6>
+            <i id="iconeOrcamentoConfig" class="bi bi-chevron-up"></i>
+          </button>
+          <div id="secaoOrcamentoConfig" class="section-content">
+            <select id="orcamentoTipoAlvo" class="form-select mb-2" onchange="atualizarCampoOrcamento()">
+              <option value="categoria">Categoria</option>
+              <option value="descricao">Descrição</option>
+            </select>
+            <select id="orcamentoCategoria" class="form-select mb-2"></select>
+            <input id="orcamentoDescricao" class="form-control mb-2 d-none" placeholder="Descrição para acompanhar">
+            <input id="orcamentoValor" class="form-control mb-2" placeholder="Valor do orçamento" inputmode="decimal" pattern="[0-9,.]*" oninput="formatarValor(this)">
+            <button type="button" onclick="salvarOrcamento()" class="btn btn-outline-warning w-100 rounded-pill">
+              <i class="bi bi-plus-circle"></i> Salvar orçamento
+            </button>
+          </div>
+        </div>
+
+        <div class="card p-3 shadow-sm border-0 mb-3">
+          <button type="button" class="section-toggle" onclick="toggleSecao('secaoFechamento', 'iconeFechamento')">
+            <h6><i class="bi bi-calendar2-week"></i> Fechamento do cartão</h6>
+            <i id="iconeFechamento" class="bi bi-chevron-up"></i>
+          </button>
+          <div id="secaoFechamento" class="section-content">
+            <select id="fechamentoCartao" class="form-select mb-2" onchange="carregarFechamentoAtual()">
+              <option>Itau</option>
+              <option>Carrefour</option>
+            </select>
+            <input id="fechamentoDiaInicio" type="number" min="1" max="28" class="form-control mb-2" placeholder="Início da fatura: dia 3">
+            <select id="fechamentoEscopo" class="form-select mb-2" onchange="carregarFechamentoAtual()">
+              <option value="global">Aplicar em todos os meses</option>
+              <option value="mes">Aplicar só ao mês selecionado</option>
+            </select>
+            <button type="button" onclick="salvarFechamentoCartao()" class="btn btn-outline-primary w-100 rounded-pill">
+              <i class="bi bi-check2-circle"></i> Salvar fechamento
+            </button>
+            <small id="resumoFechamento" class="d-block text-muted mt-2"></small>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -493,10 +519,13 @@
     function restaurarSecoes() {
       const secoes = [
         ["secaoAdicionar", "iconeAdicionar"],
+        ["secaoOrcamentoConfig", "iconeOrcamentoConfig"],
+        ["secaoFechamento", "iconeFechamento"],
         ["secaoLancamentos", "iconeLancamentos"],
         ["secaoCategorias", "iconeCategorias"],
         ["secaoAVista", "iconeAVista"],
-        ["secaoCartoes", "iconeCartoes"]
+        ["secaoCartoes", "iconeCartoes"],
+        ["secaoOrcamentos", "iconeOrcamentos"]
       ];
 
       secoes.forEach(([idSecao, idIcone]) => {
@@ -1074,7 +1103,8 @@
       descricao.value = "";
       valor.value = "";
       parcelas.value = "";
-      data.valueAsDate = new Date();
+      const _hoje = new Date();
+      data.value = `${_hoje.getFullYear()}-${String(_hoje.getMonth() + 1).padStart(2, '0')}-${String(_hoje.getDate()).padStart(2, '0')}`;
 
       btnCancelar.classList.add("d-none");
       btnSalvar.innerHTML = '<i class="bi bi-plus"></i> Adicionar';
@@ -1284,7 +1314,7 @@
         let partes = dataCompra.split("-");
         let base = new Date(partes[0], partes[1] - 1, partes[2]);
         let totalParcelas = normalizarParcelas(c.parcelas);
-        let valorParcela = c.valor / totalParcelas;
+        let valorParcela = Math.round(c.valor / totalParcelas * 100) / 100;
         let competenciaBase = mesCompetenciaCompra(c.cartao, base);
 
         for (let i = 0; i < totalParcelas; i++) {
@@ -1376,7 +1406,7 @@
         let partes = dataCompra.split("-");
         let base = new Date(partes[0], partes[1] - 1, partes[2]);
         let totalParcelas = normalizarParcelas(c.parcelas);
-        let valorParcela = c.valor / totalParcelas;
+        let valorParcela = Math.round(c.valor / totalParcelas * 100) / 100;
         let competenciaBase = mesCompetenciaCompra(c.cartao, base);
 
         for (let i = 0; i < totalParcelas; i++) {
@@ -1420,13 +1450,13 @@
 
 <div class="text-end">
 <strong class="text-success">
-R$ ${(valorParcela).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+R$ ${(valorParcela).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 </strong><br>
 
 <small>
 ${totalParcelas === 1
                 ? "À vista"
-                : `${num}/${totalParcelas} de R$ ${(valorParcela).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                : `${num}/${totalParcelas} de R$ ${(valorParcela).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
               }
 </small><br>
 
@@ -1516,7 +1546,7 @@ ${num === 1 ? `
   `;
 
         totalFiltroCategoria.classList.remove("d-none");
-        valorTotalFiltroCategoria.innerText = totalFiltro.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+        valorTotalFiltroCategoria.innerText = totalFiltro.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         nomeTotalFiltroCategoria.innerText = filtroTipoAtual;
       } else {
         filtroTipoAtivo.classList.add("d-none");
@@ -1540,7 +1570,9 @@ ${num === 1 ? `
 
           let separador = document.createElement("div");
           separador.className = "grupo-data";
-          separador.innerText = dataAtualGrupo;
+          const diaSemana = l.data.toLocaleDateString('pt-BR', { weekday: 'long' });
+          const diaSemanaCapitalizado = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
+          separador.innerText = `${dataAtualGrupo} — ${diaSemanaCapitalizado}`;
           lista.appendChild(separador);
         }
 
@@ -1712,7 +1744,8 @@ ${num === 1 ? `
       mesFiltro.value = new Date().getMonth();
       anoFiltro.value = anoAtual;
 
-      data.valueAsDate = new Date();
+      const _hojeInit = new Date();
+      data.value = `${_hojeInit.getFullYear()}-${String(_hojeInit.getMonth() + 1).padStart(2, '0')}-${String(_hojeInit.getDate()).padStart(2, '0')}`;
 
       mesFiltro.onchange = mostrar;
       anoFiltro.onchange = mostrar;
