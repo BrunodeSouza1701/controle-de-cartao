@@ -1,0 +1,3 @@
+# Copie para api/.dev.vars (não versionar) para `npm run dev` no diretório api.
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@projeto.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n....\n-----END PRIVATE KEY-----\n"

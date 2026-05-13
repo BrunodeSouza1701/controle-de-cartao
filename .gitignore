@@ -1,0 +1,7 @@
+node_modules/
+.wrangler/
+api/node_modules/
+api/.wrangler/
+api/.dev.vars
+api-config.js
+.DS_Store

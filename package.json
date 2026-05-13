@@ -1,0 +1,7 @@
+{
+  "name": "controle-de-cartao",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/embed-api-config.mjs"
+  }
+}

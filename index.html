@@ -273,6 +273,12 @@
       font-weight: 700;
     }
 
+    .auth-gate {
+      z-index: 10000;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(8px);
+    }
+
     @media (max-width: 991px) {
       .bloco-esquerda {
         flex-direction: column;
@@ -286,10 +292,26 @@
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="api-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 
 </head>
 
 <body>
+
+  <div id="authGate" class="auth-gate position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3 d-none">
+    <div class="card shadow-lg border-0" style="max-width:400px;width:100%;">
+      <div class="card-body p-4 text-center">
+        <h5 class="fw-bold mb-2">Controle de Cartão</h5>
+        <p class="text-muted small mb-4">Acesso restrito. Entre com a conta Google autorizada para continuar.</p>
+        <button type="button" id="btnGoogleLogin" class="btn btn-primary w-100 rounded-pill mb-2">
+          <i class="bi bi-google"></i> Entrar com Google
+        </button>
+        <p id="authGateErro" class="text-danger small mb-0 d-none"></p>
+      </div>
+    </div>
+  </div>
 
   <div class="app-header">
 
@@ -311,7 +333,8 @@
       <strong>R$ <span id="total">0</span></strong>
     </div>
 
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 align-items-center">
+      <button type="button" id="btnLogout" class="btn btn-sm btn-outline-light d-none" title="Sair da conta">Sair</button>
       <select id="mesFiltro" class="form-select form-select-sm"></select>
       <select id="anoFiltro" class="form-select form-select-sm"></select>
     </div>
@@ -502,6 +525,207 @@
 
   <script>
 
+    window.CONTROLE_API = Object.assign({ base: "" }, window.CONTROLE_API || {});
+    window.FIREBASE_WEB = Object.assign(
+      { apiKey: "", authDomain: "", projectId: "" },
+      window.FIREBASE_WEB || {}
+    );
+
+    const ALLOWED_USER_EMAIL = "controle.cartao2026@gmail.com";
+
+    let __cloudSyncTimer = null;
+    let __appBootstrapped = false;
+
+    function firebaseConfigOk() {
+      const f = window.FIREBASE_WEB;
+      return !!(f && f.apiKey && f.projectId && f.authDomain);
+    }
+
+    function authGateRequired() {
+      return firebaseConfigOk();
+    }
+
+    function cloudApiConfigured() {
+      return !!(window.CONTROLE_API && window.CONTROLE_API.base);
+    }
+
+    async function firebaseIdToken() {
+      if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length) return "";
+      const u = firebase.auth().currentUser;
+      if (!u) return "";
+      return u.getIdToken();
+    }
+
+    async function cloudSyncPossible() {
+      return cloudApiConfigured() && !!(await firebaseIdToken());
+    }
+
+    function showAuthGateErro(msg) {
+      const el = document.getElementById("authGateErro");
+      if (!el) return;
+      el.innerText = msg || "";
+      el.classList.toggle("d-none", !msg);
+    }
+
+    async function pullFromCloudIfEnabled() {
+      if (!(await cloudSyncPossible())) return;
+      try {
+        const base = window.CONTROLE_API.base.replace(/\/$/, "");
+        const token = await firebaseIdToken();
+        const r = await fetch(`${base}/state`, {
+          headers: {
+            "Authorization": "Bearer " + token,
+            "Accept": "application/json"
+          }
+        });
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        const data = await r.json();
+        const comprasLocais = JSON.parse(localStorage.getItem("compras") || "[]");
+        if (Array.isArray(data.compras)) {
+          if (data.compras.length > 0 || comprasLocais.length === 0) {
+            localStorage.setItem("compras", JSON.stringify(data.compras));
+          }
+        }
+        const orcLocais = JSON.parse(localStorage.getItem("orcamentos") || "[]");
+        if (Array.isArray(data.orcamentos)) {
+          if (data.orcamentos.length > 0 || orcLocais.length === 0) {
+            localStorage.setItem("orcamentos", JSON.stringify(data.orcamentos));
+          }
+        }
+        if (data.fechamentosCartao && typeof data.fechamentosCartao === "object") {
+          const rem = data.fechamentosCartao;
+          const remotoVazio =
+            !Object.keys(rem.global || {}).length && !Object.keys(rem.mensal || {}).length;
+          const loc = JSON.parse(localStorage.getItem("fechamentosCartao") || "null") || { global: {}, mensal: {} };
+          const localVazio =
+            !Object.keys(loc.global || {}).length && !Object.keys(loc.mensal || {}).length;
+          if (!remotoVazio || localVazio) {
+            localStorage.setItem("fechamentosCartao", JSON.stringify(data.fechamentosCartao));
+          }
+        }
+      } catch (e) {
+        console.warn("Sincronização (pull):", e);
+      }
+    }
+
+    function schedulePushToCloud() {
+      if (!cloudApiConfigured()) return;
+      clearTimeout(__cloudSyncTimer);
+      __cloudSyncTimer = setTimeout(function () {
+        pushToCloudNow();
+      }, 900);
+    }
+
+    async function pushToCloudNow() {
+      if (!(await cloudSyncPossible())) return;
+      const body = {
+        compras: JSON.parse(localStorage.getItem("compras") || "[]"),
+        orcamentos: JSON.parse(localStorage.getItem("orcamentos") || "[]"),
+        fechamentosCartao: JSON.parse(localStorage.getItem("fechamentosCartao") || "null") || { global: {}, mensal: {} }
+      };
+      try {
+        const base = window.CONTROLE_API.base.replace(/\/$/, "");
+        const token = await firebaseIdToken();
+        const r = await fetch(`${base}/state`, {
+          method: "PUT",
+          headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
+        if (!r.ok) console.warn("Sincronização (push):", r.status);
+      } catch (e) {
+        console.warn("Sincronização (push):", e);
+      }
+    }
+
+    function persistSet(key, jsonString) {
+      localStorage.setItem(key, jsonString);
+      if (key === "compras" || key === "orcamentos" || key === "fechamentosCartao") schedulePushToCloud();
+    }
+
+    async function logoutFirebase() {
+      if (typeof firebase !== "undefined" && firebase.apps && firebase.apps.length) {
+        await firebase.auth().signOut();
+      }
+      location.reload();
+    }
+
+    function startAppAfterAuth() {
+      if (__appBootstrapped) return;
+      __appBootstrapped = true;
+      const lo = document.getElementById("btnLogout");
+      if (lo && firebaseConfigOk()) lo.classList.remove("d-none");
+      init().catch(function (e) {
+        console.error(e);
+      });
+    }
+
+    function setupAuthGate() {
+      const gate = document.getElementById("authGate");
+      const btn = document.getElementById("btnGoogleLogin");
+
+      if (!authGateRequired()) {
+        if (gate) gate.classList.add("d-none");
+        startAppAfterAuth();
+        return;
+      }
+
+      if (typeof firebase === "undefined") {
+        console.error("Firebase Auth não carregou (scripts em falta).");
+        startAppAfterAuth();
+        return;
+      }
+
+      if (!firebase.apps.length) {
+        firebase.initializeApp(window.FIREBASE_WEB);
+      }
+
+      if (gate) gate.classList.remove("d-none");
+      if (btn) btn.disabled = false;
+
+      firebase.auth().onAuthStateChanged(function (user) {
+        showAuthGateErro("");
+        if (!user) {
+          if (gate) gate.classList.remove("d-none");
+          if (btn) btn.disabled = false;
+          return;
+        }
+
+        const email = (user.email || "").trim().toLowerCase();
+        if (email !== ALLOWED_USER_EMAIL) {
+          firebase.auth().signOut();
+          showAuthGateErro("Esta conta Google não está autorizada a usar esta aplicação.");
+          return;
+        }
+
+        if (gate) gate.classList.add("d-none");
+        startAppAfterAuth();
+      });
+
+      if (btn) {
+        btn.onclick = async function () {
+          try {
+            showAuthGateErro("");
+            btn.disabled = true;
+            const provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: "select_account" });
+            await firebase.auth().signInWithPopup(provider);
+          } catch (e) {
+            btn.disabled = false;
+            const msg = e && e.message ? e.message : "Não foi possível iniciar sessão.";
+            showAuthGateErro(msg);
+          }
+        };
+      }
+
+      const lo = document.getElementById("btnLogout");
+      if (lo) lo.onclick = function () {
+        logoutFirebase();
+      };
+    }
+
     function toggleSecao(idSecao, idIcone) {
       const secao = document.getElementById(idSecao);
       const icone = document.getElementById(idIcone);
@@ -621,7 +845,7 @@
     }
 
     function salvarOrcamentos(lista) {
-      localStorage.setItem("orcamentos", JSON.stringify(lista));
+      persistSet("orcamentos", JSON.stringify(lista));
     }
 
     function atualizarCampoOrcamento() {
@@ -687,7 +911,7 @@
     }
 
     function salvarFechamentosCartao(configuracao) {
-      localStorage.setItem("fechamentosCartao", JSON.stringify(configuracao));
+      persistSet("fechamentosCartao", JSON.stringify(configuracao));
     }
 
     function chaveMesReferencia(ano, mes) {
@@ -821,7 +1045,7 @@
 
       compra.data = `${novoAno}-${String(novoMes + 1).padStart(2, "0")}-${String(novoDia).padStart(2, "0")}`;
 
-      localStorage.setItem("compras", JSON.stringify(compras));
+      persistSet("compras", JSON.stringify(compras));
       mostrar();
     }
     // IIMPORTAR PLANILHA 
@@ -882,7 +1106,7 @@
 
         });
 
-        localStorage.setItem("compras", JSON.stringify(compras));
+        persistSet("compras", JSON.stringify(compras));
 
         avisoApp(
           "Importação concluída",
@@ -1080,7 +1304,7 @@
         compras.push(obj);
       }
 
-      localStorage.setItem("compras", JSON.stringify(compras));
+      persistSet("compras", JSON.stringify(compras));
 
       cancelarEdicao();
       mostrar();
@@ -1215,7 +1439,7 @@
 
       let compras = JSON.parse(localStorage.getItem("compras")) || [];
       compras = compras.filter(c => c.id != id);
-      localStorage.setItem("compras", JSON.stringify(compras));
+      persistSet("compras", JSON.stringify(compras));
       mostrar();
     }
 
@@ -1264,7 +1488,7 @@
           dataOriginal.getFullYear() !== anoSelecionado;
       });
 
-      localStorage.setItem("compras", JSON.stringify(compras));
+      persistSet("compras", JSON.stringify(compras));
       mostrar();
     }
 
@@ -1706,7 +1930,8 @@ ${num === 1 ? `
     }
 
     // INIT
-    function init() {
+    async function init() {
+      await pullFromCloudIfEnabled();
 
       const categorias = [
         "Farmácia",
@@ -1754,7 +1979,7 @@ ${num === 1 ? `
       mostrar();
     }
 
-    init();
+    setupAuthGate();
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./sw.js")

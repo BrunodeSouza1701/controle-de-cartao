@@ -1,0 +1,16 @@
+name = "controle-cartao-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# FIREBASE_PROJECT_ID: Console Firebase > Configurações do projeto
+# ALLOWED_ORIGIN: URL exata do site no Pages (ex.: https://xxx.pages.dev). Use * só em testes.
+# ALLOWED_EMAIL: única conta Google autorizada a sincronizar dados.
+[vars]
+FIREBASE_PROJECT_ID = ""
+ALLOWED_ORIGIN = "*"
+ALLOWED_EMAIL = "controle.cartao2026@gmail.com"
+
+# Segredos (não versionar):
+#   npx wrangler secret put FIREBASE_CLIENT_EMAIL
+#   npx wrangler secret put FIREBASE_PRIVATE_KEY
+# FIREBASE_PRIVATE_KEY: PEM da conta de serviço — prefira: npx wrangler secret put FIREBASE_PRIVATE_KEY --file chave.pem
