@@ -1,0 +1,20 @@
+{
+  "name": "Controle de Cartão",
+  "short_name": "Cartões",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f6fa",
+  "theme_color": "#0d6efd",
+  "icons": [
+    {
+      "src": "img/icon-192.png",
+      "sizes": "192x115",
+      "type": "image/png"
+    },
+    {
+      "src": "img/icon-512.png",
+      "sizes": "512x307",
+      "type": "image/png"
+    }
+  ]
+}

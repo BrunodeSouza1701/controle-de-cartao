@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d6efd">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controle de Cartão</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+  <style>
+    body {
+      background: #f5f6fa;
+      padding: 80px 10px 80px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .card {
+      border-radius: 18px;
+    }
+
+    .list-group-item {
+      border-radius: 12px;
+      transition: 0.2s;
+    }
+
+    .list-group-item:hover {
+      transform: translateY(-2px);
+      background: #f1f3f5;
+    }
+
+    /* 🔥 NOVO - HEADER APP */
+    .app-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: #0d6efd;
+      color: white;
+      padding: 12px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 999;
+      border-bottom-left-radius: 15px;
+      border-bottom-right-radius: 15px;
+
+    }
+
+    /* 🔥 NOVO - BOTÃO FLUTUANTE */
+    .fab {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #0d6efd;
+      color: white;
+      border: none;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      font-size: 28px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    button {
+      padding: 14px;
+      font-size: 16px;
+    }
+
+    input,
+    select {
+      padding: 12px;
+      font-size: 16px;
+
+    }
+
+    .app-total {
+      text-align: center;
+      line-height: 1.1;
+      min-width: 145px;
+      background: rgba(255, 255, 255, 0.18);
+      padding: 7px 12px;
+      border-radius: 14px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+    }
+
+    .app-total small {
+      display: block;
+      opacity: 0.85;
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+
+    .app-total strong {
+      display: block;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .section-toggle {
+      width: 100%;
+      border: none;
+      background: transparent;
+      padding: 0;
+      font-size: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-align: left;
+      color: inherit;
+    }
+
+    .section-toggle h6 {
+      margin: 0;
+    }
+
+    .section-content {
+      margin-top: 12px;
+    }
+
+    .section-content.oculto {
+      display: none;
+    }
+
+    .grupo-data {
+      background: #e7f1ff;
+      color: #0d6efd;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 12px;
+      margin: 14px 0 6px;
+      font-size: 14px;
+    }
+
+    .grupo-parcelado-mes {
+      background: #e9ecef;
+      color: #495057;
+    }
+
+    .grupo-parcelado-andamento {
+      background: #d1e7dd;
+      color: #146c43;
+    }
+
+    .grupo-parcelado-ultima {
+      background: #fff3cd;
+      color: #997404;
+    }
+
+    .ranking-categoria {
+      height: 8px;
+      background: #e9ecef;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .ranking-categoria-barra {
+      height: 100%;
+      background: #0d6efd;
+      border-radius: 999px;
+    }
+
+    .filtro-ativo {
+      background: #fff3cd;
+      border-radius: 12px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .categoria-clicavel {
+      cursor: pointer;
+    }
+
+    .modal-app {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 2000;
+    }
+
+    .modal-app.d-none {
+      display: none;
+    }
+
+    .bg-orange {
+      background-color: #fd7e14 !important;
+    }
+
+    .modal-app-caixa {
+      width: min(100%, 360px);
+      background: white;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+    }
+
+    .bloco-esquerda {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .form-compras-card {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .historico-meses-card {
+      width: 150px;
+      flex: 0 0 150px;
+      background: #eef6ff;
+      border: 1px solid #cfe2ff !important;
+    }
+
+    .historico-meses-card h6 {
+      color: #0d6efd;
+      font-weight: 800;
+    }
+
+    .historico-ano {
+      font-size: 12px;
+      font-weight: 800;
+      color: #6c757d;
+      margin: 10px 0 4px;
+    }
+
+    .historico-mes {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      padding: 7px 8px;
+      border-radius: 10px;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      font-size: 12px;
+      color: #212529;
+    }
+
+    .historico-mes:hover {
+      background: #f1f3f5;
+    }
+
+    .historico-mes.ativo {
+      background: #084298;
+      color: white;
+      font-weight: 800;
+      box-shadow: 0 4px 10px rgba(8, 66, 152, 0.35);
+    }
+
+    .historico-valor {
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    @media (max-width: 991px) {
+      .bloco-esquerda {
+        flex-direction: column;
+      }
+
+      .historico-meses-card {
+        width: 100%;
+        flex: none;
+      }
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+</head>
+
+<body>
+
+  <div class="app-header">
+
+    <div>
+      <h6 class="m-0 fw-bold">Controle</h6>
+      <div class="d-flex align-items-center gap-1">
+        <button type="button" class="btn btn-sm btn-light rounded-circle px-2 py-1" onclick="mudarMesSelecionado(-1)">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <small id="mesAtual" class="fw-semibold"></small>
+        <button type="button" class="btn btn-sm btn-light rounded-circle px-2 py-1" onclick="mudarMesSelecionado(1)">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="app-total">
+      <small>Total do Mês</small>
+      <strong>R$ <span id="total">0</span></strong>
+    </div>
+
+    <div class="d-flex gap-2">
+      <select id="mesFiltro" class="form-select form-select-sm"></select>
+      <select id="anoFiltro" class="form-select form-select-sm"></select>
+    </div>
+
+  </div>
+
+  <!-- CONTEÚDO -->
+  <div class="container mt-4">
+    <div class="row">
+
+      <!-- FORM -->
+      <div class="col-12 col-md-5 bloco-esquerda">
+        <div class="card p-3 shadow-sm border-0 historico-meses-card">
+          <h6 class="mb-2"><i class="bi bi-calendar3"></i> Meses</h6>
+          <div id="historicoMeses"></div>
+        </div>
+
+        <div class="card p-3 shadow-sm border-0 form-compras-card">
+
+          <button type="button" class="section-toggle" onclick="toggleSecao('secaoAdicionar', 'iconeAdicionar')">
+            <h6><i class="bi bi-plus-circle"></i> Adicionar compras</h6>
+            <i id="iconeAdicionar" class="bi bi-chevron-up"></i>
+          </button>
+
+          <div id="secaoAdicionar" class="section-content">
+
+            <select id="cartao" class="form-select mb-2">
+              <option>Itau</option>
+              <option>Carrefour</option>
+            </select>
+
+            <select id="tipo" class="form-select mb-2"></select>
+
+            <input id="descricao" class="form-control mb-2" placeholder="Descrição" autocapitalize="words">
+            <div class="invalid-feedback">
+              Informe a descrição
+            </div>
+
+            <input id="valor" class="form-control mb-2" placeholder="Valor" inputmode="decimal" pattern="[0-9,.]*"
+              oninput="formatarValor(this)">
+            <div class="invalid-feedback">
+              Informe o valor
+            </div>
+
+            <input id="parcelas" type="number" class="form-control mb-2" placeholder="Parcelas">
+
+            <input id="data" type="date" class="form-control mb-3">
+
+            <div class="d-flex gap-2">
+
+              <button id="btnSalvar" onclick="salvar()" class="btn btn-primary w-100 rounded-pill">
+                <i class="bi bi-plus"></i> Adicionar
+              </button>
+
+              <button id="btnCancelar" onclick="cancelarEdicao()" class="btn btn-secondary w-100 rounded-pill d-none">
+                Cancelar
+              </button>
+
+            </div>
+
+            <input type="file" id="arquivoExcel" class="d-none" accept=".xlsx" onchange="importarExcel(event)">
+
+            <button type="button" onclick="arquivoExcel.click()"
+              class="btn btn-outline-success w-100 rounded-pill mt-2">
+              <i class="bi bi-file-earmark-excel"></i> Importar Excel
+            </button>
+
+            <button type="button" onclick="deletarComprasDoMes()" class="btn btn-outline-danger w-100 rounded-pill mt-2">
+              <i class="bi bi-trash3"></i> Excluir Compras do Mês
+            </button>
+            <div class="card border-0 bg-light-subtle mt-3">
+              <div class="p-3">
+                <h6 class="mb-2"><i class="bi bi-speedometer2"></i> Limitador de orçamento</h6>
+                <select id="orcamentoTipoAlvo" class="form-select mb-2" onchange="atualizarCampoOrcamento()">
+                  <option value="categoria">Categoria</option>
+                  <option value="descricao">Descrição</option>
+                </select>
+                <select id="orcamentoCategoria" class="form-select mb-2"></select>
+                <input id="orcamentoDescricao" class="form-control mb-2 d-none" placeholder="Descrição para acompanhar">
+                <input id="orcamentoValor" class="form-control mb-2" placeholder="Valor do orçamento" inputmode="decimal" pattern="[0-9,.]*" oninput="formatarValor(this)">
+                <button type="button" onclick="salvarOrcamento()" class="btn btn-outline-warning w-100 rounded-pill">
+                  <i class="bi bi-plus-circle"></i> Salvar orçamento
+                </button>
+              </div>
+            </div>
+            <div class="card border-0 bg-light-subtle mt-3">
+              <div class="p-3">
+                <h6 class="mb-2"><i class="bi bi-calendar2-week"></i> Fechamento do cartão</h6>
+                <select id="fechamentoCartao" class="form-select mb-2" onchange="carregarFechamentoAtual()">
+                  <option>Itau</option>
+                  <option>Carrefour</option>
+                </select>
+                <input id="fechamentoDiaInicio" type="number" min="1" max="28" class="form-control mb-2" placeholder="Início da fatura: dia 3">
+                <select id="fechamentoEscopo" class="form-select mb-2" onchange="carregarFechamentoAtual()">
+                  <option value="global">Aplicar em todos os meses</option>
+                  <option value="mes">Aplicar só ao mês selecionado</option>
+                </select>
+                <button type="button" onclick="salvarFechamentoCartao()" class="btn btn-outline-primary w-100 rounded-pill">
+                  <i class="bi bi-check2-circle"></i> Salvar fechamento
+                </button>
+                <small id="resumoFechamento" class="d-block text-muted mt-2"></small>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- DIREITA -->
+      <div class="col-12 col-md-7">
+
+        <div class="card p-3 shadow-sm border-0 mb-3">
+          <button type="button" class="section-toggle" onclick="toggleSecao('secaoLancamentos', 'iconeLancamentos')">
+            <h6><i class="bi bi-list-ul"></i> Lançamentos</h6>
+            <i id="iconeLancamentos" class="bi bi-chevron-up"></i>
+          </button>
+          <div id="secaoLancamentos" class="section-content">
+            <input id="buscaLancamento" class="form-control mb-2" placeholder="Pesquisar lançamento" inputmode="search">
+            <div id="filtroTipoAtivo" class="filtro-ativo d-none"></div>
+            <ul id="lista" class="list-group"></ul>
+            <div id="totalFiltroCategoria" class="card border-0 bg-warning-subtle mt-3 d-none">
+              <div class="p-3">
+                <small class="text-muted">Total da Categoria</small>
+                <h4 class="m-0 text-success">R$ <span id="valorTotalFiltroCategoria">0,00</span></h4>
+                <strong id="nomeTotalFiltroCategoria"></strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-3 shadow-sm border-0 mb-3">
+          <button type="button" class="section-toggle" onclick="toggleSecao('secaoCartoes', 'iconeCartoes')">
+            <h6><i class="bi bi-credit-card"></i> Parcelados</h6>
+            <i id="iconeCartoes" class="bi bi-chevron-up"></i>
+          </button>
+          <div id="secaoCartoes" class="section-content">
+            <ul id="resumoCartao" class="list-group"></ul>
+          </div>
+        </div>
+
+        <div class="card p-3 shadow-sm border-0 mb-3">
+          <button type="button" class="section-toggle" onclick="toggleSecao('secaoAVista', 'iconeAVista')">
+            <h6><i class="bi bi-cash-coin"></i> Compras à Vista</h6>
+            <i id="iconeAVista" class="bi bi-chevron-up"></i>
+          </button>
+          <div id="secaoAVista" class="section-content">
+            <ul id="resumoAVista" class="list-group"></ul>
+          </div>
+        </div>
+
+        <div class="card p-3 shadow-sm border-0 mb-3">
+          <button type="button" class="section-toggle" onclick="toggleSecao('secaoCategorias', 'iconeCategorias')">
+            <h6><i class="bi bi-pie-chart"></i> Categorias</h6>
+            <i id="iconeCategorias" class="bi bi-chevron-up"></i>
+          </button>
+          <div id="secaoCategorias" class="section-content">
+            <ul id="resumoCategoria" class="list-group"></ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+
+    function toggleSecao(idSecao, idIcone) {
+      const secao = document.getElementById(idSecao);
+      const icone = document.getElementById(idIcone);
+
+      secao.classList.toggle("oculto");
+
+      const estaOculta = secao.classList.contains("oculto");
+
+      icone.classList.toggle("bi-chevron-up", !estaOculta);
+      icone.classList.toggle("bi-chevron-down", estaOculta);
+
+      localStorage.setItem(idSecao, estaOculta ? "oculto" : "aberto");
+    }
+
+    function restaurarSecoes() {
+      const secoes = [
+        ["secaoAdicionar", "iconeAdicionar"],
+        ["secaoLancamentos", "iconeLancamentos"],
+        ["secaoCategorias", "iconeCategorias"],
+        ["secaoAVista", "iconeAVista"],
+        ["secaoCartoes", "iconeCartoes"]
+      ];
+
+      secoes.forEach(([idSecao, idIcone]) => {
+        const secao = document.getElementById(idSecao);
+        const icone = document.getElementById(idIcone);
+
+        if (localStorage.getItem(idSecao) === "oculto") {
+          secao.classList.add("oculto");
+          icone.classList.remove("bi-chevron-up");
+          icone.classList.add("bi-chevron-down");
+        }
+      });
+    }
+
+    function irParaAdicionar() {
+      const secao = document.getElementById("secaoAdicionar");
+      const icone = document.getElementById("iconeAdicionar");
+
+      if (secao.classList.contains("oculto")) {
+        secao.classList.remove("oculto");
+        icone.classList.remove("bi-chevron-down");
+        icone.classList.add("bi-chevron-up");
+        localStorage.setItem("secaoAdicionar", "aberto");
+      }
+
+      secao.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      setTimeout(() => {
+        descricao.focus();
+      }, 400);
+    }
+
+    function filtrarPorTipoCategoria(tipoFiltro) {
+      filtroTipoAtual = tipoFiltro;
+
+      const secao = document.getElementById("secaoLancamentos");
+      const icone = document.getElementById("iconeLancamentos");
+
+      if (secao.classList.contains("oculto")) {
+        secao.classList.remove("oculto");
+        icone.classList.remove("bi-chevron-down");
+        icone.classList.add("bi-chevron-up");
+        localStorage.setItem("secaoLancamentos", "aberto");
+      }
+
+      mostrar();
+      secao.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function limparFiltroTipo() {
+      filtroTipoAtual = "";
+      mostrar();
+    }
+
+    function pesquisarLancamentos() {
+      buscaLancamentoAtual = buscaLancamento.value.trim();
+      mostrar();
+    }
+
+    function abrirModalApp({ titulo, mensagem, confirmarTexto = "Confirmar", cancelarTexto = "Cancelar", mostrarCancelar = true }) {
+      return new Promise(resolve => {
+        modalTitulo.innerText = titulo;
+        modalMensagem.innerText = mensagem;
+        modalConfirmar.innerText = confirmarTexto;
+        modalCancelar.innerText = cancelarTexto;
+        modalCancelar.classList.toggle("d-none", !mostrarCancelar);
+
+        modalApp.classList.remove("d-none");
+
+        modalConfirmar.onclick = () => {
+          modalApp.classList.add("d-none");
+          resolve(true);
+        };
+
+        modalCancelar.onclick = () => {
+          modalApp.classList.add("d-none");
+          resolve(false);
+        };
+      });
+    }
+
+    function avisoApp(titulo, mensagem) {
+      return abrirModalApp({
+        titulo,
+        mensagem,
+        confirmarTexto: "Entendi",
+        mostrarCancelar: false
+      });
+    }
+
+    function obterOrcamentos() {
+      return JSON.parse(localStorage.getItem("orcamentos")) || [];
+    }
+
+    function salvarOrcamentos(lista) {
+      localStorage.setItem("orcamentos", JSON.stringify(lista));
+    }
+
+    function atualizarCampoOrcamento() {
+      const porDescricao = orcamentoTipoAlvo.value === "descricao";
+      orcamentoCategoria.classList.toggle("d-none", porDescricao);
+      orcamentoDescricao.classList.toggle("d-none", !porDescricao);
+    }
+
+    async function salvarOrcamento() {
+      const valor = converterValorExcel(orcamentoValor.value);
+      const alvoTipo = orcamentoTipoAlvo.value;
+      const alvo = alvoTipo === "categoria" ? orcamentoCategoria.value : orcamentoDescricao.value.trim();
+
+      if (!alvo || !valor || valor <= 0) {
+        await avisoApp("Orçamento incompleto", "Informe o alvo e um valor de orçamento válido.");
+        return;
+      }
+
+      const orcamentos = obterOrcamentos();
+      const existente = orcamentos.find(item => item.tipo === alvoTipo && normalizarTexto(item.alvo) === normalizarTexto(alvo));
+
+      if (existente) {
+        existente.valor = valor;
+        existente.alvo = alvo;
+      } else {
+        orcamentos.push({ id: Date.now(), tipo: alvoTipo, alvo, valor });
+      }
+
+      salvarOrcamentos(orcamentos);
+      orcamentoDescricao.value = "";
+      orcamentoValor.value = "";
+      mostrar();
+      await avisoApp("Orçamento salvo", "O limite foi atualizado.");
+    }
+
+    async function excluirOrcamento(id) {
+      const confirmado = await abrirModalApp({
+        titulo: "Excluir orçamento",
+        mensagem: "Deseja realmente remover este limite?",
+        confirmarTexto: "Excluir"
+      });
+
+      if (!confirmado) return;
+
+      const atualizados = obterOrcamentos().filter(item => item.id != id);
+      salvarOrcamentos(atualizados);
+      mostrar();
+    }
+
+    function statusOrcamento(consumido, limite) {
+      const percentual = limite > 0 ? (consumido / limite) * 100 : 0;
+
+      if (percentual > 100) return { classe: "bg-danger", texto: "Ultrapassou" };
+      if (percentual >= 100) return { classe: "bg-orange", texto: "Atingiu" };
+      if (percentual >= 90) return { classe: "bg-warning", texto: "Próximo do limite" };
+      return { classe: "bg-success", texto: "Dentro do limite" };
+    }
+    function obterFechamentosCartao() {
+      return JSON.parse(localStorage.getItem("fechamentosCartao")) || {
+        global: {},
+        mensal: {}
+      };
+    }
+
+    function salvarFechamentosCartao(configuracao) {
+      localStorage.setItem("fechamentosCartao", JSON.stringify(configuracao));
+    }
+
+    function chaveMesReferencia(ano, mes) {
+      return `${ano}-${String(mes + 1).padStart(2, "0")}`;
+    }
+
+    function obterInicioFatura(cartao, dataBase) {
+      const configuracao = obterFechamentosCartao();
+      const cartaoResumo = nomeCartaoPadronizado(cartao);
+      const chaveMes = chaveMesReferencia(dataBase.getFullYear(), dataBase.getMonth());
+      const mensal = configuracao.mensal?.[chaveMes]?.[cartaoResumo]?.inicio;
+      const global = configuracao.global?.[cartaoResumo]?.inicio;
+      const inicio = parseInt(mensal ?? global ?? 1, 10);
+      return Number.isFinite(inicio) && inicio >= 1 && inicio <= 28 ? inicio : 1;
+    }
+
+    function mesCompetenciaCompra(cartao, dataBase) {
+      const inicio = obterInicioFatura(cartao, dataBase);
+      const competencia = new Date(dataBase.getFullYear(), dataBase.getMonth(), 1);
+
+      if (dataBase.getDate() < inicio) {
+        competencia.setMonth(competencia.getMonth() - 1);
+      }
+
+      return competencia;
+    }
+
+    function carregarFechamentoAtual() {
+      const configuracao = obterFechamentosCartao();
+      const cartaoResumo = nomeCartaoPadronizado(fechamentoCartao.value);
+      const mes = parseInt(mesFiltro.value);
+      const ano = parseInt(anoFiltro.value);
+      const chaveMes = chaveMesReferencia(ano, mes);
+      const usarMensal = fechamentoEscopo.value === "mes";
+      const valorMensal = configuracao.mensal?.[chaveMes]?.[cartaoResumo]?.inicio;
+      const valorGlobal = configuracao.global?.[cartaoResumo]?.inicio;
+      const inicio = usarMensal ? (valorMensal ?? valorGlobal ?? 1) : (valorGlobal ?? 1);
+
+      fechamentoDiaInicio.value = inicio;
+      resumoFechamento.innerText = usarMensal
+        ? `Regra deste mês: compras antes do dia ${inicio} caem no mês anterior.`
+        : `Regra geral: compras antes do dia ${inicio} caem no mês anterior.`;
+    }
+
+    async function salvarFechamentoCartao() {
+      const inicio = parseInt(fechamentoDiaInicio.value, 10);
+
+      if (!Number.isFinite(inicio) || inicio < 1 || inicio > 28) {
+        await avisoApp("Fechamento inválido", "Informe um dia inicial entre 1 e 28.");
+        return;
+      }
+
+      const configuracao = obterFechamentosCartao();
+      const cartaoResumo = nomeCartaoPadronizado(fechamentoCartao.value);
+      const mes = parseInt(mesFiltro.value);
+      const ano = parseInt(anoFiltro.value);
+      const chaveMes = chaveMesReferencia(ano, mes);
+
+      configuracao.global ||= {};
+      configuracao.mensal ||= {};
+
+      if (fechamentoEscopo.value === "mes") {
+        configuracao.mensal[chaveMes] ||= {};
+        configuracao.mensal[chaveMes][cartaoResumo] = { inicio };
+      } else {
+        configuracao.global[cartaoResumo] = { inicio };
+      }
+
+      salvarFechamentosCartao(configuracao);
+      carregarFechamentoAtual();
+      mostrar();
+
+      await avisoApp(
+        "Fechamento salvo",
+        `A regra de ${cartaoResumo} foi atualizada. As compras foram reorganizadas automaticamente.`
+      );
+    }
+    async function transferirCompra(id) {
+      let compras = JSON.parse(localStorage.getItem("compras")) || [];
+      let compra = compras.find(c => c.id == id);
+
+      if (!compra) return;
+
+      let dataCompra = normalizarData(compra.data);
+      let partes = dataCompra.split("-");
+      let anoAtualCompra = parseInt(partes[0]);
+      let mesAtualCompra = parseInt(partes[1]) - 1;
+      let diaCompra = parseInt(partes[2]);
+
+      const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+      modalTitulo.innerText = "Transferir compra";
+      modalMensagem.innerHTML = `
+        <div class="text-start">
+          <label class="form-label mb-1">Novo mês</label>
+          <select id="transferirMes" class="form-select mb-2">
+            ${nomesMeses.map((nome, index) => `<option value="${index}">${nome}</option>`).join("")}
+          </select>
+          <label class="form-label mb-1">Novo ano</label>
+          <select id="transferirAno" class="form-select">
+            ${[anoAtualCompra - 1, anoAtualCompra, anoAtualCompra + 1].map(ano => `<option value="${ano}">${ano}</option>`).join("")}
+          </select>
+        </div>
+      `;
+
+      document.getElementById("transferirMes").value = mesAtualCompra;
+      document.getElementById("transferirAno").value = anoAtualCompra;
+      modalCancelar.classList.remove("d-none");
+      modalCancelar.innerText = "Cancelar";
+      modalConfirmar.innerText = "Transferir";
+      modalApp.classList.remove("d-none");
+
+      const confirmado = await new Promise(resolve => {
+        modalConfirmar.onclick = () => {
+          modalApp.classList.add("d-none");
+          resolve(true);
+        };
+
+        modalCancelar.onclick = () => {
+          modalApp.classList.add("d-none");
+          resolve(false);
+        };
+      });
+
+      if (!confirmado) return;
+
+      const novoMes = parseInt(document.getElementById("transferirMes").value);
+      const novoAno = parseInt(document.getElementById("transferirAno").value);
+      const ultimoDiaNovoMes = new Date(novoAno, novoMes + 1, 0).getDate();
+      const novoDia = Math.min(diaCompra, ultimoDiaNovoMes);
+
+      compra.data = `${novoAno}-${String(novoMes + 1).padStart(2, "0")}-${String(novoDia).padStart(2, "0")}`;
+
+      localStorage.setItem("compras", JSON.stringify(compras));
+      mostrar();
+    }
+    // IIMPORTAR PLANILHA 
+    function importarExcel(event) {
+
+      const arquivo = event.target.files[0];
+      if (!arquivo) return;
+
+      const leitor = new FileReader();
+
+      leitor.onload = function (e) {
+
+        const dados = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(dados, { type: 'array' });
+
+        const nomeAba = workbook.SheetNames[0];
+        const planilha = workbook.Sheets[nomeAba];
+
+        const json = XLSX.utils.sheet_to_json(planilha, { range: 1 });
+
+        console.log(json);
+
+        let compras = JSON.parse(localStorage.getItem("compras")) || [];
+        const limpezaInicial = removerComprasDuplicadas(compras);
+        compras = limpezaInicial.compras;
+
+        let importados = 0;
+        let removidosAntes = limpezaInicial.removidos;
+        let duplicados = 0;
+        const chavesExistentes = new Set(compras.map(chaveCompraImportada));
+
+        json.forEach(linha => {
+
+          const obj = {
+            id: Date.now() + Math.random(),
+            descricao: linha["DESCRIÇÃO"] || linha["DESCRIÇÃO "] || "",
+            tipo: linha["TIPO"] || linha["TIPO "] || "",
+            cartao: linha["CARTÃO"] || linha["CARTÃO "] || "",
+            parcelas: normalizarParcelas(linha["TOT PARCELAS"] || linha["TOT PARCELAS "]),
+
+            valor: converterValorExcel(linha["VALOR TOTAL"]),
+
+            data: formatarDataExcel(linha["DATA"]) || ""
+          };
+
+          console.log(obj);
+
+          const chave = chaveCompraImportada(obj);
+
+          if (chavesExistentes.has(chave)) {
+            duplicados++;
+            return;
+          }
+
+          compras.push(obj);
+          chavesExistentes.add(chave);
+          importados++;
+
+        });
+
+        localStorage.setItem("compras", JSON.stringify(compras));
+
+        avisoApp(
+          "Importação concluída",
+          `${importados} registros adicionados. ${duplicados} duplicados ignorados. ${removidosAntes} duplicados antigos removidos.`
+        );
+
+        mostrar();
+      };
+
+      leitor.readAsArrayBuffer(arquivo);
+    }
+
+    function formatarDataExcel(data) {
+
+      if (!data) return "";
+
+      // se vier como string, transforma para o formato usado pelo input date
+      if (typeof data === "string") return normalizarData(data);
+
+      // se vier como número (Excel)
+      const dataConvertida = XLSX.SSF.parse_date_code(data);
+
+      return `${dataConvertida.y}-${String(dataConvertida.m).padStart(2, '0')}-${String(dataConvertida.d).padStart(2, '0')}`;
+    }
+
+    function normalizarData(data) {
+
+      const texto = data.toString().trim();
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
+        return texto;
+      }
+
+      const partes = texto.split(/[\/\-]/);
+
+      if (partes.length !== 3) return texto;
+
+      let [dia, mes, ano] = partes;
+
+      dia = dia.padStart(2, "0");
+      mes = mes.padStart(2, "0");
+
+      if (ano.length === 2) {
+        ano = "20" + ano;
+      }
+
+      return `${ano}-${mes}-${dia}`;
+    }
+
+    function converterValorExcel(valor) {
+
+      if (typeof valor === "number") return valor;
+      if (!valor) return 0;
+
+      let texto = valor
+        .toString()
+        .replace("R$", "")
+        .replace(/\s/g, "")
+        .trim();
+
+      const temVirgula = texto.includes(",");
+      const temPonto = texto.includes(".");
+
+      if (temVirgula && temPonto) {
+        texto = texto.replace(/\./g, "").replace(",", ".");
+      } else if (temVirgula) {
+        texto = texto.replace(",", ".");
+      }
+
+      return parseFloat(texto) || 0;
+    }
+
+    function normalizarParcelas(valor) {
+      const numero = parseInt(valor, 10);
+      return Number.isFinite(numero) && numero > 0 ? numero : 1;
+    }
+
+    function chaveCompraImportada(compra) {
+      return [
+        normalizarTexto(compra.descricao),
+        normalizarTexto(compra.tipo),
+        nomeCartaoPadronizado(compra.cartao),
+        normalizarParcelas(compra.parcelas),
+        Number(compra.valor || 0).toFixed(2),
+        normalizarData(compra.data || "")
+      ].join("|");
+    }
+
+    function removerComprasDuplicadas(compras) {
+      const chaves = new Set();
+      const unicas = [];
+      let removidos = 0;
+
+      compras.forEach(compra => {
+        const chave = chaveCompraImportada(compra);
+
+        if (chaves.has(chave)) {
+          removidos++;
+          return;
+        }
+
+        chaves.add(chave);
+        unicas.push(compra);
+      });
+
+      return { compras: unicas, removidos };
+    }
+
+    function normalizarTexto(texto) {
+      return texto
+        ?.toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLowerCase() || "";
+    }
+
+    function getIconeCartao(cartao) {
+      const nomeCartao = normalizarTexto(cartao);
+
+      if (nomeCartao === "itau") {
+        return "<img src='img/itau.png' width='24' class='me-2'>";
+      }
+      if (nomeCartao === "carrefour") {
+        return "<img src='img/carrefour.png' width='24' class='me-2'>";
+      }
+      return "💳";
+    }
+
+    function nomeCartaoPadronizado(cartao) {
+      const nomeCartao = normalizarTexto(cartao);
+
+      if (nomeCartao === "itau") return "Itau";
+      if (nomeCartao === "carrefour") return "Carrefour";
+
+      return cartao?.toString().trim() || "Sem cartão";
+    }
+
+    let editandoIndex = null;
+    let compraOriginalEdicao = null;
+    let filtroTipoAtual = "";
+    let buscaLancamentoAtual = "";
+
+    // FORMATAR
+    function formatarValor(c) {
+      let v = c.value.replace(/\D/g, '');
+      v = (v / 100).toFixed(2);
+      v = v.replace('.', ',');
+      v = v.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      c.value = v;
+    }
+
+    // SALVAR
+    function salvar() {
+
+      // limpa erros
+      descricao.classList.remove("is-invalid");
+      valor.classList.remove("is-invalid");
+
+      // valida descrição
+      if (descricao.value.trim() === "") {
+        descricao.classList.add("is-invalid");
+        descricao.focus();
+        return;
+      }
+
+      // valida valor
+      let valorConvertido = valorInput();
+
+      if (valor.value.trim() === "" || valorConvertido <= 0) {
+        valor.classList.add("is-invalid");
+        valor.focus();
+        return;
+      }
+
+      let parcelas = parcelasInput();
+
+      let compras = JSON.parse(localStorage.getItem("compras")) || [];
+
+      const obj = {
+        id: editandoIndex !== null ? compras[editandoIndex].id : Date.now(),
+        descricao: descricao.value,
+        tipo: tipo.value,
+        cartao: cartao.value,
+        valor: valorConvertido,
+        parcelas: parcelas,
+        data: data.value
+      };
+
+
+      if (editandoIndex !== null) {
+        compras[editandoIndex] = obj;
+        editandoIndex = null;
+      } else {
+        compras.push(obj);
+      }
+
+      localStorage.setItem("compras", JSON.stringify(compras));
+
+      cancelarEdicao();
+      mostrar();
+    }
+
+    // HELPERS
+    function valorInput() {
+      let v = valor.value.replace(/\./g, "").replace(",", ".");
+      return parseFloat(v);
+    }
+
+    function parcelasInput() {
+      return normalizarParcelas(parcelas.value);
+    }
+
+    // CANCELAR
+    function cancelarEdicao() {
+      editandoIndex = null;
+      compraOriginalEdicao = null;
+      descricao.value = "";
+      valor.value = "";
+      parcelas.value = "";
+      data.valueAsDate = new Date();
+
+      btnCancelar.classList.add("d-none");
+      btnSalvar.innerHTML = '<i class="bi bi-plus"></i> Adicionar';
+      validarFormulario();
+    }
+
+    // EDITAR
+    function editar(id) {
+
+      let compras = JSON.parse(localStorage.getItem("compras")) || [];
+      let i = compras.findIndex(c => c.id == id);
+
+      let c = compras[i];
+
+      descricao.value = c.descricao;
+      valor.value = c.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+      parcelas.value = c.parcelas;
+      data.value = c.data;
+
+      editandoIndex = i;
+
+      btnCancelar.classList.remove("d-none");
+      btnSalvar.innerHTML = '<i class="bi bi-check"></i> Atualizar';
+
+      compraOriginalEdicao = dadosFormulario();
+      validarFormulario();
+
+      descricao.classList.remove("is-invalid");
+      valor.classList.remove("is-invalid");
+
+      irParaAdicionar();
+    }
+
+    function dadosFormulario() {
+      return {
+        cartao: cartao.value,
+        tipo: tipo.value,
+        descricao: descricao.value.trim(),
+        valor: valorInput() || 0,
+        parcelas: parcelasInput(),
+        data: data.value
+      };
+    }
+
+    function formularioFoiAlterado() {
+      if (editandoIndex === null || !compraOriginalEdicao) return true;
+
+      const atual = dadosFormulario();
+
+      return Object.keys(compraOriginalEdicao).some(campo =>
+        compraOriginalEdicao[campo] !== atual[campo]
+      );
+    }
+
+    function validarFormulario() {
+      const formularioValido =
+        descricao.value.trim() !== "" &&
+        valor.value.trim() !== "" &&
+        valorInput() > 0;
+
+      btnSalvar.disabled = !formularioValido || !formularioFoiAlterado();
+    }
+
+    function sugerirTipoPelaDescricao() {
+      const texto = normalizarTexto(descricao.value);
+
+      const regras = [
+        { palavras: ["jau", "jaú"], tipo: "Supermercado" },
+        { palavras: ["agromil", "agro mil"], tipo: "Gasto Pet" }
+      ];
+
+      const regra = regras.find(r =>
+        r.palavras.some(palavra => texto.includes(normalizarTexto(palavra)))
+      );
+
+      if (regra) {
+        tipo.value = regra.tipo;
+      }
+    }
+
+    function capitalizarDescricao() {
+      const posicaoCursor = descricao.selectionStart;
+
+      descricao.value = descricao.value.replace(/\b\p{L}/gu, letra => letra.toUpperCase());
+
+      descricao.setSelectionRange(posicaoCursor, posicaoCursor);
+    }
+
+    descricao.addEventListener("input", validarFormulario);
+    descricao.addEventListener("input", sugerirTipoPelaDescricao);
+    descricao.addEventListener("input", capitalizarDescricao);
+    valor.addEventListener("input", validarFormulario);
+    cartao.addEventListener("change", validarFormulario);
+    tipo.addEventListener("change", validarFormulario);
+    parcelas.addEventListener("input", validarFormulario);
+    data.addEventListener("change", validarFormulario);
+    buscaLancamento.addEventListener("input", pesquisarLancamentos);
+
+    // DELETE
+    async function deletar(id) {
+      const confirmado = await abrirModalApp({
+        titulo: "Excluir compra",
+        mensagem: "Deseja realmente excluir esta compra?",
+        confirmarTexto: "Excluir"
+      });
+
+      if (!confirmado) return;
+
+      let compras = JSON.parse(localStorage.getItem("compras")) || [];
+      compras = compras.filter(c => c.id != id);
+      localStorage.setItem("compras", JSON.stringify(compras));
+      mostrar();
+    }
+
+    async function deletarComprasDoMes() {
+      let compras = JSON.parse(localStorage.getItem("compras")) || [];
+      let mesSelecionado = parseInt(mesFiltro.value);
+      let anoSelecionado = parseInt(anoFiltro.value);
+      const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+      const comprasDoMes = compras.filter(c => {
+        let dataCompra = normalizarData(c.data);
+        let partes = dataCompra.split("-");
+        let dataOriginal = new Date(partes[0], partes[1] - 1, partes[2]);
+
+        return dataOriginal.getMonth() === mesSelecionado &&
+          dataOriginal.getFullYear() === anoSelecionado;
+      });
+
+      if (comprasDoMes.length === 0) {
+        await avisoApp("Nada para excluir", `Não existem compras cadastradas em ${nomesMeses[mesSelecionado]} / ${anoSelecionado}.`);
+        return;
+      }
+
+      const confirmar = await abrirModalApp({
+        titulo: "Excluir compras do mês",
+        mensagem: `Deseja realmente excluir as ${comprasDoMes.length} compras cadastradas em ${nomesMeses[mesSelecionado]} / ${anoSelecionado}?`,
+        confirmarTexto: "Excluir"
+      });
+
+      if (!confirmar) return;
+
+      const confirmarNovamente = await abrirModalApp({
+        titulo: "Confirmar exclusão",
+        mensagem: "Essa ação não pode ser desfeita. Confirmar exclusão das compras deste mês?",
+        confirmarTexto: "Excluir tudo"
+      });
+
+      if (!confirmarNovamente) return;
+
+      compras = compras.filter(c => {
+        let dataCompra = normalizarData(c.data);
+        let partes = dataCompra.split("-");
+        let dataOriginal = new Date(partes[0], partes[1] - 1, partes[2]);
+
+        return dataOriginal.getMonth() !== mesSelecionado ||
+          dataOriginal.getFullYear() !== anoSelecionado;
+      });
+
+      localStorage.setItem("compras", JSON.stringify(compras));
+      mostrar();
+    }
+
+    function chaveMesAno(ano, mes) {
+      return `${ano}-${String(mes + 1).padStart(2, "0")}`;
+    }
+
+    function mudarMesSelecionado(delta) {
+      let mes = parseInt(mesFiltro.value) + delta;
+      let ano = parseInt(anoFiltro.value);
+
+      if (mes < 0) {
+        mes = 11;
+        ano--;
+      }
+
+      if (mes > 11) {
+        mes = 0;
+        ano++;
+      }
+
+      irParaMesHistorico(ano, mes);
+      carregarFechamentoAtual();
+    }
+    function irParaMesHistorico(ano, mes) {
+      anoFiltro.value = ano;
+
+      if (![...anoFiltro.options].some(option => option.value === String(ano))) {
+        anoFiltro.innerHTML += `<option value="${ano}">${ano}</option>`;
+        anoFiltro.value = ano;
+      }
+
+      mesFiltro.value = mes;
+      mostrar();
+    }
+
+    function renderizarHistoricoMeses(compras, mesSelecionado, anoSelecionado, nomesMeses) {
+      const historico = document.getElementById("historicoMeses");
+      const totaisPorMes = {};
+      const hoje = new Date();
+      const mesAtualCalendario = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      const mesSelecionadoData = new Date(anoSelecionado, mesSelecionado, 1);
+      let limite = mesSelecionadoData > mesAtualCalendario ? mesSelecionadoData : mesAtualCalendario;
+
+      compras.forEach(c => {
+        let dataCompra = normalizarData(c.data);
+        let partes = dataCompra.split("-");
+        let base = new Date(partes[0], partes[1] - 1, partes[2]);
+        let totalParcelas = normalizarParcelas(c.parcelas);
+        let valorParcela = c.valor / totalParcelas;
+        let competenciaBase = mesCompetenciaCompra(c.cartao, base);
+
+        for (let i = 0; i < totalParcelas; i++) {
+          let d = new Date(competenciaBase);
+          d.setMonth(competenciaBase.getMonth() + i);
+          let mesDaParcela = new Date(d.getFullYear(), d.getMonth(), 1);
+
+          if (mesDaParcela > limite) continue;
+
+          const chave = chaveMesAno(d.getFullYear(), d.getMonth());
+          totaisPorMes[chave] = (totaisPorMes[chave] || 0) + valorParcela;
+        }
+      });
+
+      const chaveSelecionada = chaveMesAno(anoSelecionado, mesSelecionado);
+      totaisPorMes[chaveSelecionada] = totaisPorMes[chaveSelecionada] || 0;
+
+      const meses = Object.entries(totaisPorMes)
+        .filter(([chave, valor]) => valor > 0 || chave === chaveSelecionada)
+        .sort(([a], [b]) => a.localeCompare(b));
+
+      historico.innerHTML = "";
+
+      if (meses.length === 0) {
+        historico.innerHTML = `<small class="text-muted">Sem meses anteriores.</small>`;
+        return;
+      }
+
+      let anoAtualHistorico = "";
+
+      meses.forEach(([chave, valor]) => {
+        const [anoTexto, mesTexto] = chave.split("-");
+        const ano = parseInt(anoTexto);
+        const mes = parseInt(mesTexto) - 1;
+
+        if (anoTexto !== anoAtualHistorico) {
+          anoAtualHistorico = anoTexto;
+
+          let tituloAno = document.createElement("div");
+          tituloAno.className = "historico-ano";
+          tituloAno.innerText = anoTexto;
+          historico.appendChild(tituloAno);
+        }
+
+        let botao = document.createElement("button");
+        botao.type = "button";
+        botao.className = "historico-mes";
+
+        if (ano === anoSelecionado && mes === mesSelecionado) {
+          botao.classList.add("ativo");
+        }
+
+        botao.onclick = () => irParaMesHistorico(ano, mes);
+        botao.innerHTML = `
+          <span>${nomesMeses[mes]}</span>
+          <span class="historico-valor">${valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+        `;
+
+        historico.appendChild(botao);
+      });
+    }
+
+    // MOSTRAR
+    function mostrar() {
+
+      let compras = JSON.parse(localStorage.getItem("compras")) || [];
+
+      let lista = document.getElementById("lista");
+      let totalSpan = document.getElementById("total");
+      lista.innerHTML = "";
+
+      let total = 0;
+      let resumo = {};
+      let resumoCartao = {};
+      let resumoAVista = {};
+      let lancamentos = [];
+
+      let mes = parseInt(mesFiltro.value);
+      let ano = parseInt(anoFiltro.value);
+
+      const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+      mesAtual.innerText = nomesMeses[mes] + " / " + ano;
+      renderizarHistoricoMeses(compras, mes, ano, nomesMeses);
+
+      compras.forEach(c => {
+
+        let dataCompra = normalizarData(c.data);
+        let partes = dataCompra.split("-");
+        let base = new Date(partes[0], partes[1] - 1, partes[2]);
+        let totalParcelas = normalizarParcelas(c.parcelas);
+        let valorParcela = c.valor / totalParcelas;
+        let competenciaBase = mesCompetenciaCompra(c.cartao, base);
+
+        for (let i = 0; i < totalParcelas; i++) {
+          let d = new Date(competenciaBase);
+          d.setMonth(competenciaBase.getMonth() + i);
+
+          if (d.getMonth() == mes && d.getFullYear() == ano) {
+
+            let num = i + 1;
+
+            let dia = String(base.getDate()).padStart(2, '0');
+            let mesNum = String(base.getMonth() + 1).padStart(2, '0');
+            let anoCurto = String(base.getFullYear()).slice(-2);
+
+            let li = document.createElement("li");
+            li.className = "list-group-item d-flex justify-content-between animate__animated animate__fadeInUp";
+
+            // regras de cor
+            let ehAVista = totalParcelas === 1;
+            let ultima = num === totalParcelas;
+
+            if (!ehAVista && num === 1) {
+              li.style.background = "#e9ecef";
+            }
+
+            if (!ehAVista && num > 1 && !ultima) {
+              li.classList.add("list-group-item-success");
+            }
+
+            if (!ehAVista && ultima) {
+              li.classList.add("list-group-item-warning");
+            }
+
+            li.innerHTML = `
+            
+<div>
+  ${getIconeCartao(c.cartao)}
+  <strong>${c.descricao}</strong>
+  <small>${c.tipo}</small>
+</div>
+
+<div class="text-end">
+<strong class="text-success">
+R$ ${(valorParcela).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+</strong><br>
+
+<small>
+${totalParcelas === 1
+                ? "À vista"
+                : `${num}/${totalParcelas} de R$ ${(valorParcela).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+              }
+</small><br>
+
+${totalParcelas > 1 ? `
+  <small class="text-muted">
+    Total: R$ ${c.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+  </small><br>
+` : ""}
+
+${num === 1 ? `
+<button class="btn btn-sm btn-warning" onclick="editar('${c.id}')">
+<i class="bi bi-pencil"></i>
+</button>
+<button class="btn btn-sm btn-info" onclick="transferirCompra('${c.id}')">
+<i class="bi bi-arrow-left-right"></i>
+</button>
+<button class="btn btn-sm btn-danger" onclick="deletar('${c.id}')">
+<i class="bi bi-trash"></i>
+</button>
+`: ""}
+</div>
+`;
+
+            lancamentos.push({
+              data: base,
+              dataTexto: `${dia}/${mesNum}/${anoCurto}`,
+              elemento: li,
+              valor: valorParcela,
+              descricao: c.descricao,
+              tipo: c.tipo
+            });
+
+            total += valorParcela;
+
+            resumo[c.tipo] = (resumo[c.tipo] || 0) + valorParcela;
+
+            const cartaoResumo = nomeCartaoPadronizado(c.cartao);
+
+            if (totalParcelas > 1) {
+              if (!resumoCartao[cartaoResumo]) {
+                resumoCartao[cartaoResumo] = {
+                  parcelaMes: 0,
+                  andamento: 0,
+                  ultima: 0
+                };
+              }
+
+              const compraComecouNoMesAtual = competenciaBase.getMonth() === mes && competenciaBase.getFullYear() === ano;
+
+              if (num === 1 && compraComecouNoMesAtual) {
+                resumoCartao[cartaoResumo].parcelaMes += valorParcela;
+              } else if (num === totalParcelas) {
+                resumoCartao[cartaoResumo].ultima += valorParcela;
+              } else {
+                resumoCartao[cartaoResumo].andamento += valorParcela;
+              }
+            } else {
+              resumoAVista[cartaoResumo] = (resumoAVista[cartaoResumo] || 0) + valorParcela;
+            }
+          }
+
+        }
+
+      });
+
+      lancamentos.sort((a, b) => a.data - b.data);
+
+      let dataAtualGrupo = "";
+      const filtroTipoAtivo = document.getElementById("filtroTipoAtivo");
+      const lancamentosFiltrados = filtroTipoAtual
+        ? lancamentos.filter(l => normalizarTexto(l.tipo) === normalizarTexto(filtroTipoAtual))
+        : lancamentos;
+      const buscaNormalizada = normalizarTexto(buscaLancamentoAtual);
+      const lancamentosVisiveis = buscaNormalizada
+        ? lancamentosFiltrados.filter(l => normalizarTexto(l.descricao).includes(buscaNormalizada))
+        : lancamentosFiltrados;
+
+      if (filtroTipoAtual) {
+        const totalFiltro = lancamentosVisiveis.reduce((soma, l) => soma + l.valor, 0);
+
+        filtroTipoAtivo.classList.remove("d-none");
+        filtroTipoAtivo.innerHTML = `
+    <span><strong>Filtro:</strong> ${filtroTipoAtual}</span>
+    <button type="button" class="btn btn-sm btn-danger rounded-pill fw-bold" onclick="limparFiltroTipo()">
+      <i class="bi bi-x-circle"></i> Limpar Filtro
+    </button>
+  `;
+
+        totalFiltroCategoria.classList.remove("d-none");
+        valorTotalFiltroCategoria.innerText = totalFiltro.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+        nomeTotalFiltroCategoria.innerText = filtroTipoAtual;
+      } else {
+        filtroTipoAtivo.classList.add("d-none");
+        filtroTipoAtivo.innerHTML = "";
+
+        totalFiltroCategoria.classList.add("d-none");
+        valorTotalFiltroCategoria.innerText = "0,00";
+        nomeTotalFiltroCategoria.innerText = "";
+      }
+
+      if (lancamentosVisiveis.length === 0 && (filtroTipoAtual || buscaLancamentoAtual)) {
+        let li = document.createElement("li");
+        li.className = "list-group-item text-muted";
+        li.innerText = "Nenhuma compra encontrada.";
+        lista.appendChild(li);
+      }
+
+      lancamentosVisiveis.forEach(l => {
+        if (l.dataTexto !== dataAtualGrupo) {
+          dataAtualGrupo = l.dataTexto;
+
+          let separador = document.createElement("div");
+          separador.className = "grupo-data";
+          separador.innerText = dataAtualGrupo;
+          lista.appendChild(separador);
+        }
+
+        lista.appendChild(l.elemento);
+
+      });
+
+      totalSpan.innerText = total.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+
+      resumoCategoria.innerHTML = "";
+      resumoOrcamentos.innerHTML = "";
+
+      const categoriasOrdenadas = Object.entries(resumo)
+        .filter(([, valor]) => valor > 0)
+        .sort((a, b) => b[1] - a[1]);
+
+      const maiorCategoria = categoriasOrdenadas[0]?.[1] || 0;
+
+      const orcamentos = obterOrcamentos();
+      orcamentos.forEach(orcamento => {
+        let consumido = 0;
+
+        if (orcamento.tipo === "categoria") {
+          consumido = resumo[orcamento.alvo] || 0;
+        } else {
+          consumido = lancamentos.reduce((soma, lancamento) =>
+            normalizarTexto(lancamento.descricao).includes(normalizarTexto(orcamento.alvo))
+              ? soma + lancamento.valor
+              : soma,
+            0
+          );
+        }
+
+        const percentual = orcamento.valor > 0 ? Math.min((consumido / orcamento.valor) * 100, 100) : 0;
+        const status = statusOrcamento(consumido, orcamento.valor);
+        let li = document.createElement("li");
+        li.className = "list-group-item";
+        li.innerHTML = `
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div>
+              <strong>${orcamento.alvo}</strong>
+              <small class="d-block text-muted">${orcamento.tipo === "categoria" ? "Categoria" : "Descrição"} · ${status.texto}</small>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" onclick="excluirOrcamento(${orcamento.id})">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+          <div class="small mt-2 d-flex justify-content-between">
+            <span>R$ ${consumido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+            <span>de R$ ${orcamento.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div class="progress mt-2" style="height: 10px;">
+            <div class="progress-bar ${status.classe}" style="width: ${percentual}%"></div>
+          </div>
+        `;
+        resumoOrcamentos.appendChild(li);
+      });
+
+      categoriasOrdenadas.forEach(([t, valor], index) => {
+        const percentual = maiorCategoria > 0 ? (valor / maiorCategoria) * 100 : 0;
+
+        let li = document.createElement("li");
+        li.className = "list-group-item categoria-clicavel";
+        li.onclick = () => filtrarPorTipoCategoria(t);
+        li.innerHTML = `
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
+        <span class="text-muted me-2">${index + 1}º</span>
+        <strong>${t}</strong>
+      </div>
+      <strong class="text-success">R$ ${valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
+    </div>
+    <div class="ranking-categoria">
+      <div class="ranking-categoria-barra" style="width: ${percentual}%"></div>
+    </div>
+  `;
+        resumoCategoria.appendChild(li);
+      });
+
+      let listaCartao = document.getElementById("resumoCartao");
+      listaCartao.innerHTML = "";
+
+      adicionarGrupoParcelados(listaCartao, resumoCartao, "Parcela do Mês", "parcelaMes", "grupo-parcelado-mes", "text-secondary");
+      adicionarGrupoParcelados(listaCartao, resumoCartao, "Parcelas em Andamento", "andamento", "grupo-parcelado-andamento", "text-success");
+      adicionarGrupoParcelados(listaCartao, resumoCartao, "Última Parcela", "ultima", "grupo-parcelado-ultima", "text-warning");
+
+      let listaAVista = document.getElementById("resumoAVista");
+      listaAVista.innerHTML = "";
+
+      for (let cartao in resumoAVista) {
+        listaAVista.appendChild(criarResumoCartao(cartao, "À vista", resumoAVista[cartao], "text-success"));
+      }
+
+    }
+
+    function adicionarGrupoParcelados(lista, resumoCartao, titulo, campo, classeGrupo, classeValor) {
+      const cartoes = Object.keys(resumoCartao)
+        .filter(cartao => resumoCartao[cartao][campo] > 0)
+        .sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+      if (cartoes.length === 0) return;
+
+      let grupo = document.createElement("div");
+      grupo.className = `grupo-data ${classeGrupo}`;
+      grupo.innerText = titulo;
+      lista.appendChild(grupo);
+
+      cartoes.forEach(cartao => {
+        lista.appendChild(criarResumoCartao(cartao, "", resumoCartao[cartao][campo], classeValor));
+      });
+    }
+
+    function criarResumoCartao(cartao, titulo, valor, classeValor) {
+      let li = document.createElement("li");
+      li.className = "list-group-item d-flex align-items-center justify-content-between";
+
+      const subtitulo = titulo ? `<small class="d-block text-muted">${titulo}</small>` : "";
+
+      li.innerHTML = `
+    <div>
+      ${getIconeCartao(cartao)}
+      <strong>${cartao}</strong>
+      ${subtitulo}
+    </div>
+    <div class="${classeValor} fw-bold">
+      R$ ${valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+    </div>
+  `;
+
+      return li;
+    }
+
+    // INIT
+    function init() {
+
+      const categorias = [
+        "Farmácia",
+        "Supermercado",
+        "Carro / Combustivel",
+        "Estacionamento",
+        "Acadêmico",
+        "Pão da Terra",
+        "Compra Fora",
+        "Gasto Pet",
+        "Necessidades Perfumaria",
+        "Roupas",
+        "Reparo Casa",
+        "Academia",
+        "Compra Online"
+      ];
+
+      // ordena alfabeticamente
+      categorias.sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+      // joga no select
+      tipo.innerHTML = categorias.map(c => `<option>${c}</option>`).join("");
+      orcamentoCategoria.innerHTML = categorias.map(c => `<option>${c}</option>`).join("");
+      atualizarCampoOrcamento();
+
+      const meses = ["Janeiro", "Fevereio", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+      mesFiltro.innerHTML = meses.map((m, i) => `<option value="${i}">${m}</option>`).join("");
+
+      let anoAtual = new Date().getFullYear();
+
+      for (let i = anoAtual - 1; i <= anoAtual + 2; i++) {
+        anoFiltro.innerHTML += `<option value="${i}">${i}</option>`;
+      }
+
+      mesFiltro.value = new Date().getMonth();
+      anoFiltro.value = anoAtual;
+
+      data.valueAsDate = new Date();
+
+      mesFiltro.onchange = mostrar;
+      anoFiltro.onchange = mostrar;
+
+      restaurarSecoes();
+      mostrar();
+    }
+
+    init();
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js")
+        .then(() => console.log("SW ok"))
+        .catch(err => console.log("Erro:", err));
+    }
+
+  </script>
+
+  <button class="fab" onclick="irParaAdicionar()">
+    +
+  </button>
+
+  <div id="modalApp" class="modal-app d-none">
+    <div class="modal-app-caixa">
+      <h6 id="modalTitulo" class="fw-bold mb-2"></h6>
+      <p id="modalMensagem" class="text-muted mb-3"></p>
+      <div class="d-flex gap-2">
+        <button id="modalCancelar" type="button" class="btn btn-outline-secondary w-100 rounded-pill">
+          Cancelar
+        </button>
+        <button id="modalConfirmar" type="button" class="btn btn-danger w-100 rounded-pill">
+          Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
