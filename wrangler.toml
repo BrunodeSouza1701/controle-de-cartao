@@ -1,6 +1,6 @@
-# Cloudflare Pages (site estático na raiz do repositório).
-# Deploy manual: na raiz do projeto → npm run pages:deploy
-# Ligação Git no dashboard: Build command = npm run build, Output = /
+# Cloudflare Pages (Git)
+# — No painel do projeto: Build output directory = / (raiz do repositório).
+# — Variáveis de build: CF_API_BASE, CF_FIREBASE_API_KEY, CF_FIREBASE_AUTH_DOMAIN, CF_FIREBASE_PROJECT_ID
+#   (Settings → Environment variables). Sem elas, api-config.js fica vazio e não há login/sync.
 name = "controle-cartao"
-pages_build_output_dir = "."
 compatibility_date = "2024-12-01"
