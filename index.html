@@ -728,10 +728,15 @@
 
       if (!firebase.apps.length) {
         debugLog('Inicializando Firebase');
+        debugLog('authDomain: ' + window.FIREBASE_WEB.authDomain);
+        debugLog('projectId: ' + window.FIREBASE_WEB.projectId);
         firebase.initializeApp(window.FIREBASE_WEB);
       } else {
         debugLog('Firebase já inicializado');
       }
+      
+      // Verificar domínio atual
+      debugLog('Domínio atual: ' + window.location.hostname);
 
       // Verificar se há um redirect em andamento para evitar loop
       const redirectInitiated = sessionStorage.getItem('auth_redirect_initiated');
@@ -750,8 +755,17 @@
       }
 
       firebase.auth().getRedirectResult().then(function (cred) {
+        debugLog('getRedirectResult chamado');
+        debugLog('cred existe: ' + !!cred);
+        debugLog('cred.user existe: ' + !!(cred && cred.user));
+        debugLog('cred.credential existe: ' + !!(cred && cred.credential));
+        
         const hasUser = !!(cred && cred.user);
-        debugLog('getRedirectResult: ' + (hasUser ? 'COM usuário (' + cred.user.email + ')' : 'SEM usuário'));
+        debugLog('Resultado: ' + (hasUser ? 'COM usuário (' + cred.user.email + ')' : 'SEM usuário'));
+        
+        // Verificar flag de redirect
+        const redirectFlag = sessionStorage.getItem('auth_redirect_initiated');
+        debugLog('Flag redirect: ' + (redirectFlag ? 'existe (' + (Date.now() - parseInt(redirectFlag)) + 'ms atrás)' : 'não existe'));
         
         // Limpar flag de redirect após processar resultado
         sessionStorage.removeItem('auth_redirect_initiated');
@@ -781,6 +795,7 @@
         }
       }).catch(function (e) {
         debugLog('ERRO getRedirectResult: ' + (e.code || e.message), 'error');
+        debugLog('Erro completo: ' + JSON.stringify(e), 'error');
         sessionStorage.removeItem('auth_redirect_initiated');
         
         // Ignorar erros específicos que não são problemas reais
