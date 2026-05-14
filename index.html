@@ -840,11 +840,15 @@
         localStorage.setItem("secaoAdicionar", "aberto");
       }
 
-      secao.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Usar scroll instantâneo para evitar loops em mobile
+      secao.scrollIntoView({ behavior: "auto", block: "start" });
 
-      setTimeout(() => {
-        descricao.focus();
-      }, 400);
+      // Focar no campo apenas em desktop
+      if (window.innerWidth > 768) {
+        setTimeout(() => {
+          descricao.focus();
+        }, 100);
+      }
     }
 
     function filtrarPorTipoCategoria(tipoFiltro) {
@@ -861,7 +865,8 @@
       }
 
       mostrar();
-      secao.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Usar scroll instantâneo para evitar loops em mobile
+      secao.scrollIntoView({ behavior: "auto", block: "start" });
     }
 
     function limparFiltroTipo() {
