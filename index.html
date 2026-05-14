@@ -700,6 +700,12 @@
         // Se passou mais de 30 segundos, limpar o flag (timeout)
         if (timeSinceRedirect > 30000) {
           sessionStorage.removeItem('auth_redirect_initiated');
+        } else {
+          // Ainda processando redirect, desabilitar botão
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = "Processando login...";
+          }
         }
       }
 
@@ -711,14 +717,26 @@
           if (ALLOWED_USER_EMAIL && email !== ALLOWED_USER_EMAIL) {
             return firebase.auth().signOut().then(function () {
               showAuthGateErro("Esta conta Google não está autorizada a usar esta aplicação.");
-              if (btn) btn.disabled = false;
+              if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
+              }
             });
           }
         }
+        // Reabilitar botão após processar
+        if (btn && !cred) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
+        }
       }).catch(function (e) {
+        sessionStorage.removeItem('auth_redirect_initiated');
         if (e && e.code && String(e.code).indexOf("auth/") === 0 && e.code !== "auth/operation-not-supported-in-this-environment") {
           showAuthGateErro(e.message || "Erro ao concluir o login.");
-          if (btn) btn.disabled = false;
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
+          }
         }
       });
 
@@ -746,11 +764,21 @@
 
       if (btn) {
         btn.onclick = async function () {
+          // Prevenir múltiplos cliques e loops
+          if (btn.disabled) return;
+          
+          // Verificar se já há um redirect em andamento
+          const redirectInProgress = sessionStorage.getItem('auth_redirect_initiated');
+          if (redirectInProgress) {
+            const timeSince = Date.now() - parseInt(redirectInProgress);
+            if (timeSince < 30000) {
+              console.log('Redirect já em andamento, ignorando clique');
+              return;
+            }
+          }
+          
           const provider = new firebase.auth.GoogleAuthProvider();
           provider.setCustomParameters({ prompt: "select_account" });
-          
-          // Prevenir múltiplos cliques
-          if (btn.disabled) return;
           
           try {
             showAuthGateErro("");
@@ -772,12 +800,14 @@
                 await firebase.auth().signInWithRedirect(provider);
                 return;
               } catch (e2) {
+                sessionStorage.removeItem('auth_redirect_initiated');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
                 showAuthGateErro((e2 && e2.message) || "Não foi possível iniciar sessão.");
                 return;
               }
             }
+            sessionStorage.removeItem('auth_redirect_initiated');
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
             showAuthGateErro((e && e.message) || "Não foi possível iniciar sessão.");
