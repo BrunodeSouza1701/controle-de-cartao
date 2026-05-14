@@ -531,7 +531,7 @@
       window.FIREBASE_WEB || {}
     );
 
-    const ALLOWED_USER_EMAIL = "";
+    const ALLOWED_USER_EMAIL = null;
 
     let __cloudSyncTimer = null;
     let __appBootstrapped = false;
@@ -694,7 +694,7 @@
       firebase.auth().getRedirectResult().then(function (cred) {
         if (cred && cred.user) {
           const email = (cred.user.email || "").trim().toLowerCase();
-          if (email !== ALLOWED_USER_EMAIL) {
+          if (ALLOWED_USER_EMAIL && user.email !== ALLOWED_USER_EMAIL) {
             return firebase.auth().signOut().then(function () {
               showAuthGateErro("Esta conta Google não está autorizada a usar esta aplicação.");
             });
