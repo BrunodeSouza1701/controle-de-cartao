@@ -646,11 +646,13 @@
     }
 
     async function logoutFirebase() {
-      if (typeof firebase !== "undefined" && firebase.apps && firebase.apps.length) {
-        await firebase.auth().signOut();
-      }
-      location.reload();
-    }
+  if (typeof firebase !== "undefined" && firebase.apps && firebase.apps.length) {
+    await firebase.auth().signOut();
+  }
+
+  const gate = document.getElementById("authGate");
+  if (gate) gate.classList.remove("d-none");
+  }
 
     function startAppAfterAuth() {
       if (__appBootstrapped) return;
@@ -691,18 +693,32 @@
         firebase.initializeApp(window.FIREBASE_WEB);
       }
 
+      // Verificar se há um redirect em andamento para evitar loop
+      const redirectInitiated = sessionStorage.getItem('auth_redirect_initiated');
+      if (redirectInitiated) {
+        const timeSinceRedirect = Date.now() - parseInt(redirectInitiated);
+        // Se passou mais de 30 segundos, limpar o flag (timeout)
+        if (timeSinceRedirect > 30000) {
+          sessionStorage.removeItem('auth_redirect_initiated');
+        }
+      }
+
       firebase.auth().getRedirectResult().then(function (cred) {
+        // Limpar flag de redirect após processar resultado
+        sessionStorage.removeItem('auth_redirect_initiated');
         if (cred && cred.user) {
           const email = (cred.user.email || "").trim().toLowerCase();
-          if (ALLOWED_USER_EMAIL && user.email !== ALLOWED_USER_EMAIL) {
+          if (ALLOWED_USER_EMAIL && email !== ALLOWED_USER_EMAIL) {
             return firebase.auth().signOut().then(function () {
               showAuthGateErro("Esta conta Google não está autorizada a usar esta aplicação.");
+              if (btn) btn.disabled = false;
             });
           }
         }
       }).catch(function (e) {
         if (e && e.code && String(e.code).indexOf("auth/") === 0 && e.code !== "auth/operation-not-supported-in-this-environment") {
           showAuthGateErro(e.message || "Erro ao concluir o login.");
+          if (btn) btn.disabled = false;
         }
       });
 
@@ -732,10 +748,18 @@
         btn.onclick = async function () {
           const provider = new firebase.auth.GoogleAuthProvider();
           provider.setCustomParameters({ prompt: "select_account" });
+          
+          // Prevenir múltiplos cliques
+          if (btn.disabled) return;
+          
           try {
             showAuthGateErro("");
             btn.disabled = true;
+            btn.textContent = "Aguarde...";
+            
             if (preferAuthRedirect()) {
+              // Marcar que estamos iniciando redirect para evitar loop
+              sessionStorage.setItem('auth_redirect_initiated', Date.now().toString());
               await firebase.auth().signInWithRedirect(provider);
               return;
             }
@@ -744,15 +768,18 @@
             var code = e && e.code;
             if (!preferAuthRedirect() && (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user")) {
               try {
+                sessionStorage.setItem('auth_redirect_initiated', Date.now().toString());
                 await firebase.auth().signInWithRedirect(provider);
                 return;
               } catch (e2) {
                 btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
                 showAuthGateErro((e2 && e2.message) || "Não foi possível iniciar sessão.");
                 return;
               }
             }
             btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
             showAuthGateErro((e && e.message) || "Não foi possível iniciar sessão.");
           }
         };
