@@ -714,13 +714,11 @@ Debug Log:
       });
     }
 
-    /** Em muitos telemóveis o popup do Google é bloqueado; o redirect funciona de forma fiável. */
+    /** Tentar popup primeiro, fallback para redirect se falhar */
     function preferAuthRedirect() {
-      try {
-        if (window.matchMedia("(pointer: coarse)").matches) return true;
-        if (window.matchMedia("(max-width: 900px)").matches) return true;
-      } catch (e) { /* ignore */ }
-      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || "");
+      // Forçar popup para tentar resolver problema de redirect
+      debugLog('preferAuthRedirect: forçando popup (false)');
+      return false;
     }
 
     function setupAuthGate() {
