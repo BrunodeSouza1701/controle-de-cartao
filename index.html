@@ -1,4 +1,22 @@
-<!DOCTYPE html>
+Cartão
+Acesso restrito. Entre com a conta Google autorizada para continuar.
+
+Debug Log:
+[02:03:02] === Iniciando setupAuthGate ===
+[02:03:02] authGateRequired: true
+[02:03:02] Inicializando Firebase
+[02:03:02] authDomain: controle-de-cartao-47347.firebaseapp.com
+[02:03:02] projectId: controle-de-cartao-47347
+[02:03:02] Domínio atual: controle-de-cartao.pages.dev
+[02:03:03] onAuthStateChanged: sem usuário
+[02:03:03] Sem usuário - mostrando tela de login
+[02:03:03] getRedirectResult chamado
+[02:03:03] cred existe: true
+[02:03:03] cred.user existe: false
+[02:03:03] cred.credential existe: false
+[02:03:03] Resultado: SEM usuário
+[02:03:03] Flag redirect: existe (8975ms atrás)
+[02:03:03] Primeira carga ou sem redirect pendente<!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
@@ -765,6 +783,7 @@
         
         // Verificar flag de redirect
         const redirectFlag = sessionStorage.getItem('auth_redirect_initiated');
+        const hadRedirect = !!redirectFlag;
         debugLog('Flag redirect: ' + (redirectFlag ? 'existe (' + (Date.now() - parseInt(redirectFlag)) + 'ms atrás)' : 'não existe'));
         
         // Limpar flag de redirect após processar resultado
@@ -786,8 +805,15 @@
           // Email autorizado ou sem restrição - onAuthStateChanged vai lidar com isso
           debugLog('Email OK, onAuthStateChanged vai processar', 'success');
         } else {
-          // Sem credencial - primeira carga ou refresh normal
-          debugLog('Primeira carga ou sem redirect pendente');
+          // Verificar se houve redirect mas não retornou usuário (problema de domínio)
+          if (hadRedirect) {
+            debugLog('PROBLEMA: Redirect iniciado mas sem usuário!', 'error');
+            debugLog('Possível causa: domínio não autorizado no Firebase', 'error');
+            showAuthGateErro('Erro: O domínio ' + window.location.hostname + ' não está autorizado no Firebase Console. Adicione-o em Authentication > Settings > Authorized domains.');
+          } else {
+            debugLog('Primeira carga ou sem redirect pendente');
+          }
+          
           if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
