@@ -718,7 +718,7 @@
         }
 
         const email = (user.email || "").trim().toLowerCase();
-        if (email !== ALLOWED_USER_EMAIL) {
+        if (ALLOWED_USER_EMAIL && email !== ALLOWED_USER_EMAIL) {
           firebase.auth().signOut();
           showAuthGateErro("Esta conta Google não está autorizada a usar esta aplicação.");
           return;
