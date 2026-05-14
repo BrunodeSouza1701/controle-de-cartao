@@ -710,11 +710,16 @@
       }
 
       firebase.auth().getRedirectResult().then(function (cred) {
+        console.log('getRedirectResult:', cred ? 'com credencial' : 'sem credencial');
+        
         // Limpar flag de redirect após processar resultado
         sessionStorage.removeItem('auth_redirect_initiated');
+        
         if (cred && cred.user) {
+          console.log('Usuário autenticado:', cred.user.email);
           const email = (cred.user.email || "").trim().toLowerCase();
           if (ALLOWED_USER_EMAIL && email !== ALLOWED_USER_EMAIL) {
+            console.log('Email não autorizado:', email);
             return firebase.auth().signOut().then(function () {
               showAuthGateErro("Esta conta Google não está autorizada a usar esta aplicação.");
               if (btn) {
@@ -723,20 +728,33 @@
               }
             });
           }
-        }
-        // Reabilitar botão após processar
-        if (btn && !cred) {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
-        }
-      }).catch(function (e) {
-        sessionStorage.removeItem('auth_redirect_initiated');
-        if (e && e.code && String(e.code).indexOf("auth/") === 0 && e.code !== "auth/operation-not-supported-in-this-environment") {
-          showAuthGateErro(e.message || "Erro ao concluir o login.");
+          // Email autorizado ou sem restrição - onAuthStateChanged vai lidar com isso
+          console.log('Login bem-sucedido, aguardando onAuthStateChanged');
+        } else {
+          // Sem credencial - primeira carga ou refresh normal
+          console.log('Sem credencial de redirect');
           if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
           }
+        }
+      }).catch(function (e) {
+        console.error('Erro no getRedirectResult:', e);
+        sessionStorage.removeItem('auth_redirect_initiated');
+        
+        // Ignorar erros específicos que não são problemas reais
+        const ignoredErrors = [
+          'auth/operation-not-supported-in-this-environment',
+          'auth/network-request-failed'
+        ];
+        
+        if (e && e.code && ignoredErrors.indexOf(e.code) === -1) {
+          showAuthGateErro(e.message || "Erro ao concluir o login.");
+        }
+        
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
         }
       });
 
@@ -744,36 +762,55 @@
       if (btn) btn.disabled = false;
 
       firebase.auth().onAuthStateChanged(function (user) {
+        console.log('onAuthStateChanged:', user ? user.email : 'sem usuário');
         showAuthGateErro("");
+        
         if (!user) {
+          console.log('Sem usuário - mostrando tela de login');
           if (gate) gate.classList.remove("d-none");
-          if (btn) btn.disabled = false;
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
+          }
           return;
         }
 
         const email = (user.email || "").trim().toLowerCase();
+        console.log('Verificando email:', email, 'Permitido:', ALLOWED_USER_EMAIL);
+        
         if (ALLOWED_USER_EMAIL && email !== ALLOWED_USER_EMAIL) {
+          console.log('Email não autorizado, fazendo logout');
           firebase.auth().signOut();
           showAuthGateErro("Esta conta Google não está autorizada a usar esta aplicação.");
           return;
         }
 
+        console.log('Usuário autorizado, iniciando app');
         if (gate) gate.classList.add("d-none");
         startAppAfterAuth();
       });
 
       if (btn) {
         btn.onclick = async function () {
+          console.log('Botão de login clicado');
+          
           // Prevenir múltiplos cliques e loops
-          if (btn.disabled) return;
+          if (btn.disabled) {
+            console.log('Botão desabilitado, ignorando clique');
+            return;
+          }
           
           // Verificar se já há um redirect em andamento
           const redirectInProgress = sessionStorage.getItem('auth_redirect_initiated');
           if (redirectInProgress) {
             const timeSince = Date.now() - parseInt(redirectInProgress);
+            console.log('Tempo desde último redirect:', timeSince, 'ms');
             if (timeSince < 30000) {
               console.log('Redirect já em andamento, ignorando clique');
               return;
+            } else {
+              console.log('Redirect expirado, limpando flag');
+              sessionStorage.removeItem('auth_redirect_initiated');
             }
           }
           
@@ -785,21 +822,29 @@
             btn.disabled = true;
             btn.textContent = "Aguarde...";
             
-            if (preferAuthRedirect()) {
+            const useRedirect = preferAuthRedirect();
+            console.log('Método de autenticação:', useRedirect ? 'redirect' : 'popup');
+            
+            if (useRedirect) {
               // Marcar que estamos iniciando redirect para evitar loop
               sessionStorage.setItem('auth_redirect_initiated', Date.now().toString());
+              console.log('Iniciando signInWithRedirect');
               await firebase.auth().signInWithRedirect(provider);
               return;
             }
+            console.log('Iniciando signInWithPopup');
             await firebase.auth().signInWithPopup(provider);
           } catch (e) {
+            console.error('Erro no login:', e);
             var code = e && e.code;
             if (!preferAuthRedirect() && (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user")) {
+              console.log('Popup bloqueado, tentando redirect');
               try {
                 sessionStorage.setItem('auth_redirect_initiated', Date.now().toString());
                 await firebase.auth().signInWithRedirect(provider);
                 return;
               } catch (e2) {
+                console.error('Erro no redirect após popup bloqueado:', e2);
                 sessionStorage.removeItem('auth_redirect_initiated');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
