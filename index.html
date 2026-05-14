@@ -301,7 +301,7 @@
 <body>
 
   <div id="authGate" class="auth-gate position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3 d-none">
-    <div class="card shadow-lg border-0" style="max-width:400px;width:100%;">
+    <div class="card shadow-lg border-0" style="max-width:500px;width:100%;">
       <div class="card-body p-4 text-center">
         <h5 class="fw-bold mb-2">Controle de Cartão</h5>
         <p class="text-muted small mb-4">Acesso restrito. Entre com a conta Google autorizada para continuar.</p>
@@ -309,6 +309,15 @@
           <i class="bi bi-google"></i> Entrar com Google
         </button>
         <p id="authGateErro" class="text-danger small mb-0 d-none"></p>
+        
+        <!-- Painel de Debug -->
+        <div class="mt-3 p-2 bg-light rounded text-start" style="max-height:200px;overflow-y:auto;">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <small class="fw-bold text-muted">Debug Log:</small>
+            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="document.getElementById('debugPanel').innerHTML='';debugLog('Log limpo')">Limpar</button>
+          </div>
+          <div id="debugPanel" class="small" style="font-family:monospace;"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -560,9 +569,32 @@
       return cloudApiConfigured() && !!(await firebaseIdToken());
     }
 
+    // Sistema de debug visual
+    function debugLog(msg, tipo = 'info') {
+      console.log(msg);
+      const debugPanel = document.getElementById('debugPanel');
+      if (!debugPanel) return;
+      
+      const time = new Date().toLocaleTimeString('pt-BR');
+      const color = tipo === 'error' ? 'text-danger' : tipo === 'success' ? 'text-success' : 'text-primary';
+      const entry = document.createElement('div');
+      entry.className = `small ${color} mb-1`;
+      entry.textContent = `[${time}] ${msg}`;
+      debugPanel.appendChild(entry);
+      
+      // Manter apenas últimas 20 mensagens
+      while (debugPanel.children.length > 20) {
+        debugPanel.removeChild(debugPanel.firstChild);
+      }
+      
+      // Auto-scroll para o final
+      debugPanel.scrollTop = debugPanel.scrollHeight;
+    }
+
     function showAuthGateErro(msg) {
       const el = document.getElementById("authGateErro");
       if (!el) return;
+      if (msg) debugLog('ERRO: ' + msg, 'error');
       el.innerText = msg || "";
       el.classList.toggle("d-none", !msg);
     }
@@ -677,20 +709,28 @@
       const gate = document.getElementById("authGate");
       const btn = document.getElementById("btnGoogleLogin");
 
+      debugLog('=== Iniciando setupAuthGate ===');
+      debugLog('authGateRequired: ' + authGateRequired());
+
       if (!authGateRequired()) {
+        debugLog('Auth gate não necessário, iniciando app');
         if (gate) gate.classList.add("d-none");
         startAppAfterAuth();
         return;
       }
 
       if (typeof firebase === "undefined") {
+        debugLog('Firebase não carregado!', 'error');
         console.error("Firebase Auth não carregou (scripts em falta).");
         startAppAfterAuth();
         return;
       }
 
       if (!firebase.apps.length) {
+        debugLog('Inicializando Firebase');
         firebase.initializeApp(window.FIREBASE_WEB);
+      } else {
+        debugLog('Firebase já inicializado');
       }
 
       // Verificar se há um redirect em andamento para evitar loop
@@ -710,16 +750,16 @@
       }
 
       firebase.auth().getRedirectResult().then(function (cred) {
-        console.log('getRedirectResult:', cred ? 'com credencial' : 'sem credencial');
+        debugLog('getRedirectResult: ' + (cred ? 'com credencial' : 'sem credencial'));
         
         // Limpar flag de redirect após processar resultado
         sessionStorage.removeItem('auth_redirect_initiated');
         
         if (cred && cred.user) {
-          console.log('Usuário autenticado:', cred.user.email);
+          debugLog('Usuário autenticado: ' + cred.user.email, 'success');
           const email = (cred.user.email || "").trim().toLowerCase();
           if (ALLOWED_USER_EMAIL && email !== ALLOWED_USER_EMAIL) {
-            console.log('Email não autorizado:', email);
+            debugLog('Email não autorizado: ' + email, 'error');
             return firebase.auth().signOut().then(function () {
               showAuthGateErro("Esta conta Google não está autorizada a usar esta aplicação.");
               if (btn) {
@@ -729,17 +769,17 @@
             });
           }
           // Email autorizado ou sem restrição - onAuthStateChanged vai lidar com isso
-          console.log('Login bem-sucedido, aguardando onAuthStateChanged');
+          debugLog('Login bem-sucedido, aguardando onAuthStateChanged', 'success');
         } else {
           // Sem credencial - primeira carga ou refresh normal
-          console.log('Sem credencial de redirect');
+          debugLog('Sem credencial de redirect');
           if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
           }
         }
       }).catch(function (e) {
-        console.error('Erro no getRedirectResult:', e);
+        debugLog('Erro no getRedirectResult: ' + (e.code || e.message), 'error');
         sessionStorage.removeItem('auth_redirect_initiated');
         
         // Ignorar erros específicos que não são problemas reais
@@ -762,11 +802,11 @@
       if (btn) btn.disabled = false;
 
       firebase.auth().onAuthStateChanged(function (user) {
-        console.log('onAuthStateChanged:', user ? user.email : 'sem usuário');
+        debugLog('onAuthStateChanged: ' + (user ? user.email : 'sem usuário'));
         showAuthGateErro("");
         
         if (!user) {
-          console.log('Sem usuário - mostrando tela de login');
+          debugLog('Sem usuário - mostrando tela de login');
           if (gate) gate.classList.remove("d-none");
           if (btn) {
             btn.disabled = false;
@@ -776,27 +816,27 @@
         }
 
         const email = (user.email || "").trim().toLowerCase();
-        console.log('Verificando email:', email, 'Permitido:', ALLOWED_USER_EMAIL);
+        debugLog('Verificando email: ' + email + ' | Permitido: ' + (ALLOWED_USER_EMAIL || 'qualquer'));
         
         if (ALLOWED_USER_EMAIL && email !== ALLOWED_USER_EMAIL) {
-          console.log('Email não autorizado, fazendo logout');
+          debugLog('Email não autorizado, fazendo logout', 'error');
           firebase.auth().signOut();
           showAuthGateErro("Esta conta Google não está autorizada a usar esta aplicação.");
           return;
         }
 
-        console.log('Usuário autorizado, iniciando app');
+        debugLog('Usuário autorizado, iniciando app', 'success');
         if (gate) gate.classList.add("d-none");
         startAppAfterAuth();
       });
 
       if (btn) {
         btn.onclick = async function () {
-          console.log('Botão de login clicado');
+          debugLog('Botão de login clicado');
           
           // Prevenir múltiplos cliques e loops
           if (btn.disabled) {
-            console.log('Botão desabilitado, ignorando clique');
+            debugLog('Botão desabilitado, ignorando clique');
             return;
           }
           
@@ -804,12 +844,12 @@
           const redirectInProgress = sessionStorage.getItem('auth_redirect_initiated');
           if (redirectInProgress) {
             const timeSince = Date.now() - parseInt(redirectInProgress);
-            console.log('Tempo desde último redirect:', timeSince, 'ms');
+            debugLog('Tempo desde último redirect: ' + timeSince + 'ms');
             if (timeSince < 30000) {
-              console.log('Redirect já em andamento, ignorando clique');
+              debugLog('Redirect já em andamento, ignorando clique');
               return;
             } else {
-              console.log('Redirect expirado, limpando flag');
+              debugLog('Redirect expirado, limpando flag');
               sessionStorage.removeItem('auth_redirect_initiated');
             }
           }
@@ -823,28 +863,28 @@
             btn.textContent = "Aguarde...";
             
             const useRedirect = preferAuthRedirect();
-            console.log('Método de autenticação:', useRedirect ? 'redirect' : 'popup');
+            debugLog('Método: ' + (useRedirect ? 'redirect' : 'popup'));
             
             if (useRedirect) {
               // Marcar que estamos iniciando redirect para evitar loop
               sessionStorage.setItem('auth_redirect_initiated', Date.now().toString());
-              console.log('Iniciando signInWithRedirect');
+              debugLog('Iniciando signInWithRedirect');
               await firebase.auth().signInWithRedirect(provider);
               return;
             }
-            console.log('Iniciando signInWithPopup');
+            debugLog('Iniciando signInWithPopup');
             await firebase.auth().signInWithPopup(provider);
           } catch (e) {
-            console.error('Erro no login:', e);
+            debugLog('Erro no login: ' + (e.code || e.message), 'error');
             var code = e && e.code;
             if (!preferAuthRedirect() && (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user")) {
-              console.log('Popup bloqueado, tentando redirect');
+              debugLog('Popup bloqueado, tentando redirect');
               try {
                 sessionStorage.setItem('auth_redirect_initiated', Date.now().toString());
                 await firebase.auth().signInWithRedirect(provider);
                 return;
               } catch (e2) {
-                console.error('Erro no redirect após popup bloqueado:', e2);
+                debugLog('Erro no redirect: ' + (e2.code || e2.message), 'error');
                 sessionStorage.removeItem('auth_redirect_initiated');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
