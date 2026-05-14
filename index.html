@@ -581,32 +581,14 @@ Debug Log:
       return cloudApiConfigured() && !!(await firebaseIdToken());
     }
 
-    // Sistema de debug visual
+    // Debug desabilitado
     function debugLog(msg, tipo = 'info') {
-      console.log(msg);
-      const debugPanel = document.getElementById('debugPanel');
-      if (!debugPanel) return;
-      
-      const time = new Date().toLocaleTimeString('pt-BR');
-      const color = tipo === 'error' ? 'text-danger' : tipo === 'success' ? 'text-success' : 'text-primary';
-      const entry = document.createElement('div');
-      entry.className = `small ${color} mb-1`;
-      entry.textContent = `[${time}] ${msg}`;
-      debugPanel.appendChild(entry);
-      
-      // Manter apenas últimas 20 mensagens
-      while (debugPanel.children.length > 20) {
-        debugPanel.removeChild(debugPanel.firstChild);
-      }
-      
-      // Auto-scroll para o final
-      debugPanel.scrollTop = debugPanel.scrollHeight;
+      // Função vazia - debug desabilitado
     }
 
     function showAuthGateErro(msg) {
       const el = document.getElementById("authGateErro");
       if (!el) return;
-      if (msg) debugLog('ERRO: ' + msg, 'error');
       el.innerText = msg || "";
       el.classList.toggle("d-none", !msg);
     }
@@ -624,28 +606,16 @@ Debug Log:
         });
         if (!r.ok) throw new Error("HTTP " + r.status);
         const data = await r.json();
-        const comprasLocais = JSON.parse(localStorage.getItem("compras") || "[]");
+        
+        // Sempre usar dados da nuvem (sincronização bidirecional)
         if (Array.isArray(data.compras)) {
-          if (data.compras.length > 0 || comprasLocais.length === 0) {
-            localStorage.setItem("compras", JSON.stringify(data.compras));
-          }
+          localStorage.setItem("compras", JSON.stringify(data.compras));
         }
-        const orcLocais = JSON.parse(localStorage.getItem("orcamentos") || "[]");
         if (Array.isArray(data.orcamentos)) {
-          if (data.orcamentos.length > 0 || orcLocais.length === 0) {
-            localStorage.setItem("orcamentos", JSON.stringify(data.orcamentos));
-          }
+          localStorage.setItem("orcamentos", JSON.stringify(data.orcamentos));
         }
         if (data.fechamentosCartao && typeof data.fechamentosCartao === "object") {
-          const rem = data.fechamentosCartao;
-          const remotoVazio =
-            !Object.keys(rem.global || {}).length && !Object.keys(rem.mensal || {}).length;
-          const loc = JSON.parse(localStorage.getItem("fechamentosCartao") || "null") || { global: {}, mensal: {} };
-          const localVazio =
-            !Object.keys(loc.global || {}).length && !Object.keys(loc.mensal || {}).length;
-          if (!remotoVazio || localVazio) {
-            localStorage.setItem("fechamentosCartao", JSON.stringify(data.fechamentosCartao));
-          }
+          localStorage.setItem("fechamentosCartao", JSON.stringify(data.fechamentosCartao));
         }
       } catch (e) {
         console.warn("Sincronização (pull):", e);
