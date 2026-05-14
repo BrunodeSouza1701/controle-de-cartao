@@ -750,13 +750,14 @@
       }
 
       firebase.auth().getRedirectResult().then(function (cred) {
-        debugLog('getRedirectResult: ' + (cred ? 'com credencial' : 'sem credencial'));
+        const hasUser = !!(cred && cred.user);
+        debugLog('getRedirectResult: ' + (hasUser ? 'COM usuário (' + cred.user.email + ')' : 'SEM usuário'));
         
         // Limpar flag de redirect após processar resultado
         sessionStorage.removeItem('auth_redirect_initiated');
         
-        if (cred && cred.user) {
-          debugLog('Usuário autenticado: ' + cred.user.email, 'success');
+        if (hasUser) {
+          debugLog('Processando usuário autenticado: ' + cred.user.email, 'success');
           const email = (cred.user.email || "").trim().toLowerCase();
           if (ALLOWED_USER_EMAIL && email !== ALLOWED_USER_EMAIL) {
             debugLog('Email não autorizado: ' + email, 'error');
@@ -769,17 +770,17 @@
             });
           }
           // Email autorizado ou sem restrição - onAuthStateChanged vai lidar com isso
-          debugLog('Login bem-sucedido, aguardando onAuthStateChanged', 'success');
+          debugLog('Email OK, onAuthStateChanged vai processar', 'success');
         } else {
           // Sem credencial - primeira carga ou refresh normal
-          debugLog('Sem credencial de redirect');
+          debugLog('Primeira carga ou sem redirect pendente');
           if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
           }
         }
       }).catch(function (e) {
-        debugLog('Erro no getRedirectResult: ' + (e.code || e.message), 'error');
+        debugLog('ERRO getRedirectResult: ' + (e.code || e.message), 'error');
         sessionStorage.removeItem('auth_redirect_initiated');
         
         // Ignorar erros específicos que não são problemas reais
