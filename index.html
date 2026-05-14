@@ -549,11 +549,11 @@
       return !!(window.CONTROLE_API && window.CONTROLE_API.base);
     }
 
-    async function firebaseIdToken() {
+    async function firebaseIdToken(optForceRefresh) {
       if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length) return "";
       const u = firebase.auth().currentUser;
       if (!u) return "";
-      return u.getIdToken();
+      return u.getIdToken(!!optForceRefresh);
     }
 
     async function cloudSyncPossible() {
@@ -571,7 +571,7 @@
       if (!(await cloudSyncPossible())) return;
       try {
         const base = window.CONTROLE_API.base.replace(/\/$/, "");
-        const token = await firebaseIdToken();
+        const token = await firebaseIdToken(true);
         const r = await fetch(`${base}/state`, {
           headers: {
             "Authorization": "Bearer " + token,
@@ -662,6 +662,15 @@
       });
     }
 
+    /** Em muitos telemóveis o popup do Google é bloqueado; o redirect funciona de forma fiável. */
+    function preferAuthRedirect() {
+      try {
+        if (window.matchMedia("(pointer: coarse)").matches) return true;
+        if (window.matchMedia("(max-width: 900px)").matches) return true;
+      } catch (e) { /* ignore */ }
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || "");
+    }
+
     function setupAuthGate() {
       const gate = document.getElementById("authGate");
       const btn = document.getElementById("btnGoogleLogin");
@@ -681,6 +690,21 @@
       if (!firebase.apps.length) {
         firebase.initializeApp(window.FIREBASE_WEB);
       }
+
+      firebase.auth().getRedirectResult().then(function (cred) {
+        if (cred && cred.user) {
+          const email = (cred.user.email || "").trim().toLowerCase();
+          if (email !== ALLOWED_USER_EMAIL) {
+            return firebase.auth().signOut().then(function () {
+              showAuthGateErro("Esta conta Google não está autorizada a usar esta aplicação.");
+            });
+          }
+        }
+      }).catch(function (e) {
+        if (e && e.code && String(e.code).indexOf("auth/") === 0 && e.code !== "auth/operation-not-supported-in-this-environment") {
+          showAuthGateErro(e.message || "Erro ao concluir o login.");
+        }
+      });
 
       if (gate) gate.classList.remove("d-none");
       if (btn) btn.disabled = false;
@@ -706,16 +730,30 @@
 
       if (btn) {
         btn.onclick = async function () {
+          const provider = new firebase.auth.GoogleAuthProvider();
+          provider.setCustomParameters({ prompt: "select_account" });
           try {
             showAuthGateErro("");
             btn.disabled = true;
-            const provider = new firebase.auth.GoogleAuthProvider();
-            provider.setCustomParameters({ prompt: "select_account" });
+            if (preferAuthRedirect()) {
+              await firebase.auth().signInWithRedirect(provider);
+              return;
+            }
             await firebase.auth().signInWithPopup(provider);
           } catch (e) {
+            var code = e && e.code;
+            if (!preferAuthRedirect() && (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user")) {
+              try {
+                await firebase.auth().signInWithRedirect(provider);
+                return;
+              } catch (e2) {
+                btn.disabled = false;
+                showAuthGateErro((e2 && e2.message) || "Não foi possível iniciar sessão.");
+                return;
+              }
+            }
             btn.disabled = false;
-            const msg = e && e.message ? e.message : "Não foi possível iniciar sessão.";
-            showAuthGateErro(msg);
+            showAuthGateErro((e && e.message) || "Não foi possível iniciar sessão.");
           }
         };
       }

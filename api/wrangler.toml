@@ -7,7 +7,7 @@ compatibility_date = "2024-12-01"
 # ALLOWED_EMAIL: única conta Google autorizada a sincronizar dados.
 [vars]
 FIREBASE_PROJECT_ID = ""
-ALLOWED_ORIGIN = "*"
+ALLOWED_ORIGIN = "https://controle-cartao.pages.dev"
 ALLOWED_EMAIL = "controle.cartao2026@gmail.com"
 
 # Segredos (não versionar):

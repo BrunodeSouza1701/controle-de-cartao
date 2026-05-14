@@ -2,6 +2,10 @@
   "name": "controle-de-cartao",
   "private": true,
   "scripts": {
-    "build": "node scripts/embed-api-config.mjs"
+    "build": "node scripts/embed-api-config.mjs",
+    "pages:deploy": "npm run build && npx wrangler pages deploy . --project-name=controle-cartao"
+  },
+  "devDependencies": {
+    "wrangler": "^3.114.0"
   }
 }
