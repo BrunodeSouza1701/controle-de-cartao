@@ -723,7 +723,8 @@
             const authHeader = "Basic " + credentials;
             
             // Testar credenciais fazendo uma requisição à API
-            const response = await fetch(API_BASE_URL + "/state", {
+            const base = window.CONTROLE_API.base.replace(/\/$/, "");
+            const response = await fetch(base + "/state", {
               method: "GET",
               headers: {
                 "Authorization": authHeader
