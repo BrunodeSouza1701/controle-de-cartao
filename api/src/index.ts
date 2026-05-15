@@ -185,7 +185,10 @@ async function fetchUserDocument(
   if (!pid) throw new Error("FIREBASE_PROJECT_ID ausente");
 
   const res = await fetch(docUrl(pid, relativePath), {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json",
+    },
   });
 
   if (res.status === 404) return { exists: false, state: null };
@@ -217,8 +220,8 @@ async function readState(env: Env): Promise<AppState> {
     const final = state ?? emptyState();
     inMemoryState = final;
     return final;
-  } catch {
-    // Em caso de erro, retorna estado em memória como fallback
+  } catch (error) {
+    console.error("readState failed, using in-memory fallback", error);
     return inMemoryState;
   }
 }
@@ -238,6 +241,7 @@ async function writeState(env: Env, state: AppState): Promise<void> {
     method: "PATCH",
     headers: {
       Authorization: `Bearer ${token}`,
+      Accept: "application/json",
       "Content-Type": "application/json",
     },
     body,
@@ -256,6 +260,7 @@ async function writeState(env: Env, state: AppState): Promise<void> {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
+        Accept: "application/json",
         "Content-Type": "application/json",
       },
       body,
@@ -280,12 +285,50 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(env, req) });
     }
 
+    const url = new URL(req.url);
+    const pathname = url.pathname.replace(/\/$/, "");
+
+    if (pathname === "/debug-firestore" && req.method === "GET") {
+      try {
+        const token = await getGoogleAccessToken(env);
+        const { exists } = await fetchUserDocument(env, token, LEGACY_DOC);
+
+        let created = false;
+        if (!exists) {
+          await writeState(env, emptyState());
+          created = true;
+        }
+
+        return json(
+          {
+            firestore_ok: true,
+            document_exists: true,
+            created,
+            firebase_project_id: env.FIREBASE_PROJECT_ID ?? null,
+            firebase_client_email: !!env.FIREBASE_CLIENT_EMAIL,
+            allowed_origin: env.ALLOWED_ORIGIN ?? null,
+          },
+          env,
+          req,
+        );
+      } catch (error) {
+        return json(
+          {
+            firestore_ok: false,
+            error: error instanceof Error ? error.message : String(error),
+            firebase_project_id: env.FIREBASE_PROJECT_ID ?? null,
+            firebase_client_email: !!env.FIREBASE_CLIENT_EMAIL,
+            allowed_origin: env.ALLOWED_ORIGIN ?? null,
+          },
+          env,
+          req,
+        );
+      }
+    }
+
     if (!verifyBasicAuth(req, env)) {
       return unauthorized(env, req, "invalid_credentials");
     }
-
-    const url = new URL(req.url);
-    const pathname = url.pathname.replace(/\/$/, "");
 
     try {
       // Endpoint: GET /state - Buscar estado completo
