@@ -115,6 +115,10 @@ async function getGoogleAccessToken(env: Env): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   if (cachedAccess && cachedAccess.exp > now + 60) return cachedAccess.token;
 
+  if (!env.FIREBASE_PRIVATE_KEY) {
+    throw new Error("FIREBASE_PRIVATE_KEY not configured");
+  }
+  
   const pem = env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n");
   const key = await jose.importPKCS8(pem, "RS256");
   const jwt = await new jose.SignJWT({
