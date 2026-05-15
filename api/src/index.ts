@@ -82,6 +82,12 @@ function verifyBasicAuth(req: Request, env: Env): boolean {
   return username === validUsername && password === validPassword;
 }
 
+function maskSecret(s?: string | null): string | null {
+  if (!s) return null;
+  if (s.length <= 2) return '*'.repeat(s.length);
+  return s[0] + '*'.repeat(Math.max(1, s.length - 2)) + s[s.length - 1];
+}
+
 // UID fixo para o usuário único
 const FIXED_UID = "admin-user-001";
 
@@ -170,49 +176,52 @@ async function fetchUserDocument(
   return { exists: true, state: parsed ?? emptyState() };
 }
 
+// Armazenamento temporário em memória (será perdido ao reiniciar o Worker)
+// TODO: Migrar para Cloudflare KV ou Durable Objects para persistência
+let inMemoryState: AppState = emptyState();
+
 async function readState(env: Env): Promise<AppState> {
-  const accessToken = await getGoogleAccessToken(env);
-  const userPath = `userdata/${FIXED_UID}`;
-
-  const userDoc = await fetchUserDocument(env, accessToken, userPath);
-  if (userDoc.exists) {
-    return userDoc.state ?? emptyState();
+  try {
+    const token = await getGoogleAccessToken(env);
+    const { exists, state } = await fetchUserDocument(env, token, LEGACY_DOC);
+    if (!exists) {
+      // Se não existir no Firestore, inicializa com estado vazio e grava
+      const init = emptyState();
+      await writeState(env, init);
+      return init;
+    }
+    const final = state ?? emptyState();
+    inMemoryState = final;
+    return final;
+  } catch {
+    // Em caso de erro, retorna estado em memória como fallback
+    return inMemoryState;
   }
-
-  const legacy = await fetchUserDocument(env, accessToken, LEGACY_DOC);
-  if (legacy.exists && legacy.state) {
-    return legacy.state;
-  }
-
-  return emptyState();
 }
 
 async function writeState(env: Env, state: AppState): Promise<void> {
+  // Atualiza armazenamento em memória imediatamente
+  inMemoryState = state;
+
   const pid = env.FIREBASE_PROJECT_ID?.trim();
   if (!pid) throw new Error("FIREBASE_PROJECT_ID ausente");
 
-  const accessToken = await getGoogleAccessToken(env);
-  const relativePath = `userdata/${FIXED_UID}`;
-  const stringValue = JSON.stringify(state);
-  const body = {
-    fields: {
-      [DATA_FIELD]: { stringValue: stringValue },
-    },
-  };
+  const token = await getGoogleAccessToken(env);
+  const url = docUrl(pid, LEGACY_DOC);
+  const body = JSON.stringify({ fields: { [DATA_FIELD]: { stringValue: JSON.stringify(state) } } });
 
-  const url = `${docUrl(pid, relativePath)}?updateMask.fieldPaths=${encodeURIComponent(DATA_FIELD)}`;
   const res = await fetch(url, {
     method: "PATCH",
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(body),
+    body,
   });
 
   if (!res.ok) {
     const t = await res.text();
-    throw new Error(`firestore patch ${res.status}: ${t}`);
+    throw new Error(`firestore write ${res.status}: ${t}`);
   }
 }
 
@@ -292,6 +301,20 @@ export default {
         await writeState(env, state);
 
         return json({ ok: true, compra: novaCompra }, env, req, 201);
+      }
+
+      // Endpoint: GET /debug - Verifica se as variáveis de ambiente estão carregadas (senha mascarada)
+      if (pathname === "/debug" && req.method === "GET") {
+        return json(
+          {
+            auth_username_present: !!env.AUTH_USERNAME?.trim(),
+            auth_username_masked: maskSecret(env.AUTH_USERNAME ?? null),
+            has_password: !!env.AUTH_PASSWORD?.trim(),
+            allowed_origin: env.ALLOWED_ORIGIN ?? null,
+          },
+          env,
+          req,
+        );
       }
 
       return json({ error: "not_found" }, env, req, 404);
