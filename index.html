@@ -540,7 +540,11 @@
 
   <script>
 
-    window.CONTROLE_API = Object.assign({ base: "" }, window.CONTROLE_API || {});
+    // URL da API - fallback se api-config.js não carregar
+    window.CONTROLE_API = Object.assign(
+      { base: "https://controle-cartao-api.brunos2tammy.workers.dev" },
+      window.CONTROLE_API || {}
+    );
     window.FIREBASE_WEB = Object.assign(
       { apiKey: "", authDomain: "", projectId: "" },
       window.FIREBASE_WEB || {}
