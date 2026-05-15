@@ -35,14 +35,34 @@ const emptyState = (): AppState => ({
 
 let cachedAccess: { token: string; exp: number } | null = null;
 
-function corsHeaders(env: Env, _req: Request): HeadersInit {
-  const allowed = env.ALLOWED_ORIGIN?.trim() || "*";
-  return {
-    "Access-Control-Allow-Origin": allowed === "" ? "*" : allowed,
+function corsHeaders(env: Env, req: Request): HeadersInit {
+  const configured = env.ALLOWED_ORIGIN?.trim();
+  const originHeader = req.headers.get("Origin") || "";
+
+  let allowOrigin: string;
+  if (configured && configured !== "") {
+    if (configured === "*") {
+      allowOrigin = originHeader || "*";
+    } else {
+      allowOrigin = configured;
+    }
+  } else {
+    allowOrigin = originHeader || "*";
+  }
+
+  const headers: HeadersInit = {
+    "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Methods": "GET, PUT, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
     "Access-Control-Max-Age": "86400",
   };
+
+  if (allowOrigin !== "*") {
+    // Permitir credenciais quando a origem for específica
+    (headers as any)["Access-Control-Allow-Credentials"] = "true";
+  }
+
+  return headers;
 }
 
 function json(data: unknown, env: Env, req: Request, status = 200): Response {
@@ -218,6 +238,31 @@ async function writeState(env: Env, state: AppState): Promise<void> {
     },
     body,
   });
+
+  if (res.status === 404) {
+    // Documento não existe — tentar criar no collection parent
+    const parts = LEGACY_DOC.split("/");
+    const docId = parts.pop() as string;
+    const parent = parts.join("/");
+    const createUrl = `https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/${parent}?documentId=${encodeURIComponent(
+      docId,
+    )}`;
+
+    const res2 = await fetch(createUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body,
+    });
+
+    if (!res2.ok) {
+      const t = await res2.text();
+      throw new Error(`firestore create ${res2.status}: ${t}`);
+    }
+    return;
+  }
 
   if (!res.ok) {
     const t = await res.text();
