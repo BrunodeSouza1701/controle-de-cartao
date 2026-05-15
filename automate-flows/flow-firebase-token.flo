@@ -1,0 +1,71 @@
+{
+  "name": "Obter Token Firebase",
+  "description": "Obtém e renova o token de autenticação do Firebase automaticamente",
+  "version": "1.0",
+  "blocks": [
+    {
+      "id": 1,
+      "type": "flow_beginning",
+      "trigger": "manual_or_periodic"
+    },
+    {
+      "id": 2,
+      "type": "http_request",
+      "method": "POST",
+      "url": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "email": "controle.cartao2026@gmail.com",
+        "password": "SUA_SENHA_AQUI",
+        "returnSecureToken": true
+      },
+      "output": "auth_response"
+    },
+    {
+      "id": 3,
+      "type": "expression",
+      "expression": "JSON.parse(auth_response).idToken",
+      "output": "id_token"
+    },
+    {
+      "id": 4,
+      "type": "variable_set_global",
+      "name": "firebase_token",
+      "value": "{id_token}"
+    },
+    {
+      "id": 5,
+      "type": "toast",
+      "message": "✅ Token Firebase atualizado!",
+      "duration": "short"
+    },
+    {
+      "id": 6,
+      "type": "delay",
+      "duration": "3000000",
+      "comment": "Aguardar 50 minutos (3.000.000 ms)"
+    },
+    {
+      "id": 7,
+      "type": "flow_beginning",
+      "comment": "Reiniciar o flow para renovar o token"
+    }
+  ],
+  "connections": [
+    {"from": 1, "to": 2},
+    {"from": 2, "to": 3},
+    {"from": 3, "to": 4},
+    {"from": 4, "to": 5},
+    {"from": 5, "to": 6},
+    {"from": 6, "to": 7},
+    {"from": 7, "to": 2}
+  ],
+  "notes": [
+    "IMPORTANTE: Substitua 'AIzaSyBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' pela sua API Key do Firebase",
+    "IMPORTANTE: Substitua 'SUA_SENHA_AQUI' pela senha da conta controle.cartao2026@gmail.com",
+    "Este flow deve ser iniciado manualmente uma vez e ficará rodando em loop",
+    "O token é renovado automaticamente a cada 50 minutos (expira em 1 hora)"
+  ]
+}

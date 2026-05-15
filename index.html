@@ -293,8 +293,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <script src="api-config.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 
 </head>
 
@@ -302,13 +300,27 @@
 
   <div id="authGate" class="auth-gate position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3 d-none">
     <div class="card shadow-lg border-0" style="max-width:400px;width:100%;">
-      <div class="card-body p-4 text-center">
-        <h5 class="fw-bold mb-2">Controle de Cartão</h5>
-        <p class="text-muted small mb-4">Acesso restrito. Entre com a conta Google autorizada para continuar.</p>
-        <button type="button" id="btnGoogleLogin" class="btn btn-primary w-100 rounded-pill mb-2">
-          <i class="bi bi-google"></i> Entrar com Google
-        </button>
-        <p id="authGateErro" class="text-danger small mb-0 d-none"></p>
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-2 text-center">Controle de Cartão</h5>
+        <p class="text-muted small mb-4 text-center">Acesso restrito. Entre com suas credenciais.</p>
+        
+        <form id="loginForm" onsubmit="return false;">
+          <div class="mb-3">
+            <label for="loginUsername" class="form-label">Usuário</label>
+            <input type="text" class="form-control" id="loginUsername" required autocomplete="username" value="admin">
+          </div>
+          
+          <div class="mb-3">
+            <label for="loginPassword" class="form-label">Senha</label>
+            <input type="password" class="form-control" id="loginPassword" required autocomplete="current-password">
+          </div>
+          
+          <button type="submit" id="btnLogin" class="btn btn-primary w-100 rounded-pill mb-2">
+            <i class="bi bi-box-arrow-in-right"></i> Entrar
+          </button>
+        </form>
+        
+        <p id="authGateErro" class="text-danger small mb-0 text-center d-none"></p>
       </div>
     </div>
   </div>
@@ -534,33 +546,16 @@
       window.FIREBASE_WEB || {}
     );
 
-    const ALLOWED_USER_EMAIL = "controle.cartao2026@gmail.com";
-
     let __cloudSyncTimer = null;
     let __appBootstrapped = false;
-
-    function firebaseConfigOk() {
-      const f = window.FIREBASE_WEB;
-      return !!(f && f.apiKey && f.projectId && f.authDomain);
-    }
-
-    function authGateRequired() {
-      return firebaseConfigOk();
-    }
+    let currentAuthCredentials = null;
 
     function cloudApiConfigured() {
       return !!(window.CONTROLE_API && window.CONTROLE_API.base);
     }
 
-    async function firebaseIdToken(optForceRefresh) {
-      if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length) return "";
-      const u = firebase.auth().currentUser;
-      if (!u) return "";
-      return u.getIdToken(!!optForceRefresh);
-    }
-
     async function cloudSyncPossible() {
-      return cloudApiConfigured() && !!(await firebaseIdToken());
+      return cloudApiConfigured() && !!currentAuthCredentials;
     }
 
     // Debug desabilitado
@@ -568,21 +563,13 @@
       // Função vazia - debug desabilitado
     }
 
-    function showAuthGateErro(msg) {
-      const el = document.getElementById("authGateErro");
-      if (!el) return;
-      el.innerText = msg || "";
-      el.classList.toggle("d-none", !msg);
-    }
-
     async function pullFromCloudIfEnabled() {
       if (!(await cloudSyncPossible())) return;
       try {
         const base = window.CONTROLE_API.base.replace(/\/$/, "");
-        const token = await firebaseIdToken(true);
         const r = await fetch(`${base}/state`, {
           headers: {
-            "Authorization": "Bearer " + token,
+            "Authorization": currentAuthCredentials,
             "Accept": "application/json"
           }
         });
@@ -621,11 +608,10 @@
       };
       try {
         const base = window.CONTROLE_API.base.replace(/\/$/, "");
-        const token = await firebaseIdToken();
         const r = await fetch(`${base}/state`, {
           method: "PUT",
           headers: {
-            "Authorization": "Bearer " + token,
+            "Authorization": currentAuthCredentials,
             "Content-Type": "application/json"
           },
           body: JSON.stringify(body)
@@ -641,255 +627,141 @@
       if (key === "compras" || key === "orcamentos" || key === "fechamentosCartao") schedulePushToCloud();
     }
 
-    async function logoutFirebase() {
-  if (typeof firebase !== "undefined" && firebase.apps && firebase.apps.length) {
-    await firebase.auth().signOut();
-  }
+    // ========== AUTENTICAÇÃO BASIC AUTH ==========
+    
+    function showAuthGateErro(msg) {
+      const el = document.getElementById("authGateErro");
+      if (!el) return;
+      if (!msg) {
+        el.classList.add("d-none");
+        el.innerText = "";
+      } else {
+        el.classList.remove("d-none");
+        el.innerText = msg;
+      }
+    }
 
-  const gate = document.getElementById("authGate");
-  if (gate) gate.classList.remove("d-none");
-  }
+    function logoutBasicAuth() {
+      debugLog('Fazendo logout');
+      currentAuthCredentials = null;
+      sessionStorage.removeItem("auth_credentials");
+      
+      const gate = document.getElementById("authGate");
+      if (gate) gate.classList.remove("d-none");
+      
+      // Limpar formulário
+      const usernameInput = document.getElementById("loginUsername");
+      const passwordInput = document.getElementById("loginPassword");
+      if (usernameInput) usernameInput.value = "admin";
+      if (passwordInput) passwordInput.value = "";
+    }
 
     function startAppAfterAuth() {
       if (__appBootstrapped) return;
       __appBootstrapped = true;
       const lo = document.getElementById("btnLogout");
-      if (lo && firebaseConfigOk()) lo.classList.remove("d-none");
+      if (lo) lo.classList.remove("d-none");
       init().catch(function (e) {
         console.error(e);
       });
     }
 
-    /** Tentar popup primeiro, fallback para redirect se falhar */
-    function preferAuthRedirect() {
-      // Forçar popup para tentar resolver problema de redirect
-      debugLog('preferAuthRedirect: forçando popup (false)');
-      return false;
-    }
-
     function setupAuthGate() {
+      debugLog('=== INICIANDO AUTENTICAÇÃO BASIC AUTH ===');
+      
       const gate = document.getElementById("authGate");
-      const btn = document.getElementById("btnGoogleLogin");
-
-      debugLog('=== Iniciando setupAuthGate ===');
-      debugLog('authGateRequired: ' + authGateRequired());
-
-      if (!authGateRequired()) {
-        debugLog('Auth gate não necessário, iniciando app');
-        if (gate) gate.classList.add("d-none");
-        startAppAfterAuth();
+      const form = document.getElementById("loginForm");
+      const btnLogin = document.getElementById("btnLogin");
+      const usernameInput = document.getElementById("loginUsername");
+      const passwordInput = document.getElementById("loginPassword");
+      
+      if (!gate || !form || !btnLogin) {
+        debugLog('Elementos de autenticação não encontrados!', 'error');
         return;
-      }
-
-      if (typeof firebase === "undefined") {
-        debugLog('Firebase não carregado!', 'error');
-        console.error("Firebase Auth não carregou (scripts em falta).");
-        startAppAfterAuth();
-        return;
-      }
-
-      if (!firebase.apps.length) {
-        debugLog('Inicializando Firebase');
-        debugLog('authDomain: ' + window.FIREBASE_WEB.authDomain);
-        debugLog('projectId: ' + window.FIREBASE_WEB.projectId);
-        firebase.initializeApp(window.FIREBASE_WEB);
-      } else {
-        debugLog('Firebase já inicializado');
       }
       
-      // Verificar domínio atual
-      debugLog('Domínio atual: ' + window.location.hostname);
-
-      // Verificar se há um redirect em andamento para evitar loop
-      const redirectInitiated = sessionStorage.getItem('auth_redirect_initiated');
-      if (redirectInitiated) {
-        const timeSinceRedirect = Date.now() - parseInt(redirectInitiated);
-        // Se passou mais de 30 segundos, limpar o flag (timeout)
-        if (timeSinceRedirect > 30000) {
-          sessionStorage.removeItem('auth_redirect_initiated');
-        } else {
-          // Ainda processando redirect, desabilitar botão
-          if (btn) {
-            btn.disabled = true;
-            btn.textContent = "Processando login...";
-          }
-        }
-      }
-
-      firebase.auth().getRedirectResult().then(function (cred) {
-        debugLog('getRedirectResult chamado');
-        debugLog('cred existe: ' + !!cred);
-        debugLog('cred.user existe: ' + !!(cred && cred.user));
-        debugLog('cred.credential existe: ' + !!(cred && cred.credential));
-        
-        const hasUser = !!(cred && cred.user);
-        debugLog('Resultado: ' + (hasUser ? 'COM usuário (' + cred.user.email + ')' : 'SEM usuário'));
-        
-        // Verificar flag de redirect
-        const redirectFlag = sessionStorage.getItem('auth_redirect_initiated');
-        const hadRedirect = !!redirectFlag;
-        debugLog('Flag redirect: ' + (redirectFlag ? 'existe (' + (Date.now() - parseInt(redirectFlag)) + 'ms atrás)' : 'não existe'));
-        
-        // Limpar flag de redirect após processar resultado
-        sessionStorage.removeItem('auth_redirect_initiated');
-        
-        if (hasUser) {
-          debugLog('Processando usuário autenticado: ' + cred.user.email, 'success');
-          const email = (cred.user.email || "").trim().toLowerCase();
-          if (ALLOWED_USER_EMAIL && email !== ALLOWED_USER_EMAIL) {
-            debugLog('Email não autorizado: ' + email, 'error');
-            return firebase.auth().signOut().then(function () {
-              showAuthGateErro("Esta conta Google não está autorizada a usar esta aplicação.");
-              if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
-              }
-            });
-          }
-          // Email autorizado ou sem restrição - onAuthStateChanged vai lidar com isso
-          debugLog('Email OK, onAuthStateChanged vai processar', 'success');
-        } else {
-          // Verificar se houve redirect mas não retornou usuário (problema de domínio)
-          if (hadRedirect) {
-            debugLog('PROBLEMA: Redirect iniciado mas sem usuário!', 'error');
-            debugLog('Possível causa: domínio não autorizado no Firebase', 'error');
-            showAuthGateErro('Erro: O domínio ' + window.location.hostname + ' não está autorizado no Firebase Console. Adicione-o em Authentication > Settings > Authorized domains.');
-          } else {
-            debugLog('Primeira carga ou sem redirect pendente');
-          }
-          
-          if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
-          }
-        }
-      }).catch(function (e) {
-        debugLog('ERRO getRedirectResult: ' + (e.code || e.message), 'error');
-        debugLog('Erro completo: ' + JSON.stringify(e), 'error');
-        sessionStorage.removeItem('auth_redirect_initiated');
-        
-        // Ignorar erros específicos que não são problemas reais
-        const ignoredErrors = [
-          'auth/operation-not-supported-in-this-environment',
-          'auth/network-request-failed'
-        ];
-        
-        if (e && e.code && ignoredErrors.indexOf(e.code) === -1) {
-          showAuthGateErro(e.message || "Erro ao concluir o login.");
-        }
-        
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
-        }
-      });
-
-      if (gate) gate.classList.remove("d-none");
-      if (btn) btn.disabled = false;
-
-      firebase.auth().onAuthStateChanged(function (user) {
-        debugLog('onAuthStateChanged: ' + (user ? user.email : 'sem usuário'));
-        showAuthGateErro("");
-        
-        if (!user) {
-          debugLog('Sem usuário - mostrando tela de login');
-          if (gate) gate.classList.remove("d-none");
-          if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
-          }
-          return;
-        }
-
-        const email = (user.email || "").trim().toLowerCase();
-        debugLog('Verificando email: ' + email + ' | Permitido: ' + (ALLOWED_USER_EMAIL || 'qualquer'));
-        
-        if (ALLOWED_USER_EMAIL && email !== ALLOWED_USER_EMAIL) {
-          debugLog('Email não autorizado, fazendo logout', 'error');
-          firebase.auth().signOut();
-          showAuthGateErro("Esta conta Google não está autorizada a usar esta aplicação.");
-          return;
-        }
-
-        debugLog('Usuário autorizado, iniciando app', 'success');
+      // Verificar se já está autenticado
+      const savedAuth = sessionStorage.getItem("auth_credentials");
+      if (savedAuth) {
+        debugLog('Credenciais salvas encontradas');
+        currentAuthCredentials = savedAuth;
         if (gate) gate.classList.add("d-none");
         startAppAfterAuth();
-      });
-
-      if (btn) {
-        btn.onclick = async function () {
-          debugLog('Botão de login clicado');
+        return;
+      }
+      
+      // Mostrar tela de login
+      debugLog('Mostrando tela de login');
+      if (gate) gate.classList.remove("d-none");
+      
+      // Handler do formulário
+      if (form) {
+        form.onsubmit = async function(e) {
+          e.preventDefault();
           
-          // Prevenir múltiplos cliques e loops
-          if (btn.disabled) {
-            debugLog('Botão desabilitado, ignorando clique');
+          const username = usernameInput.value.trim();
+          const password = passwordInput.value.trim();
+          
+          if (!username || !password) {
+            showAuthGateErro("Preencha usuário e senha.");
             return;
           }
           
-          // Verificar se já há um redirect em andamento
-          const redirectInProgress = sessionStorage.getItem('auth_redirect_initiated');
-          if (redirectInProgress) {
-            const timeSince = Date.now() - parseInt(redirectInProgress);
-            debugLog('Tempo desde último redirect: ' + timeSince + 'ms');
-            if (timeSince < 30000) {
-              debugLog('Redirect já em andamento, ignorando clique');
-              return;
-            } else {
-              debugLog('Redirect expirado, limpando flag');
-              sessionStorage.removeItem('auth_redirect_initiated');
-            }
-          }
-          
-          const provider = new firebase.auth.GoogleAuthProvider();
-          provider.setCustomParameters({ prompt: "select_account" });
+          debugLog('Tentando login com usuário: ' + username);
           
           try {
             showAuthGateErro("");
-            btn.disabled = true;
-            btn.textContent = "Aguarde...";
+            btnLogin.disabled = true;
+            btnLogin.textContent = "Aguarde...";
             
-            const useRedirect = preferAuthRedirect();
-            debugLog('Método: ' + (useRedirect ? 'redirect' : 'popup'));
+            // Criar credenciais Basic Auth
+            const credentials = btoa(username + ":" + password);
+            const authHeader = "Basic " + credentials;
             
-            if (useRedirect) {
-              // Marcar que estamos iniciando redirect para evitar loop
-              sessionStorage.setItem('auth_redirect_initiated', Date.now().toString());
-              debugLog('Iniciando signInWithRedirect');
-              await firebase.auth().signInWithRedirect(provider);
-              return;
-            }
-            debugLog('Iniciando signInWithPopup');
-            await firebase.auth().signInWithPopup(provider);
-          } catch (e) {
-            debugLog('Erro no login: ' + (e.code || e.message), 'error');
-            var code = e && e.code;
-            if (!preferAuthRedirect() && (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user")) {
-              debugLog('Popup bloqueado, tentando redirect');
-              try {
-                sessionStorage.setItem('auth_redirect_initiated', Date.now().toString());
-                await firebase.auth().signInWithRedirect(provider);
-                return;
-              } catch (e2) {
-                debugLog('Erro no redirect: ' + (e2.code || e2.message), 'error');
-                sessionStorage.removeItem('auth_redirect_initiated');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
-                showAuthGateErro((e2 && e2.message) || "Não foi possível iniciar sessão.");
-                return;
+            // Testar credenciais fazendo uma requisição à API
+            const response = await fetch(API_BASE_URL + "/state", {
+              method: "GET",
+              headers: {
+                "Authorization": authHeader
               }
+            });
+            
+            if (response.ok) {
+              debugLog('Login bem-sucedido', 'success');
+              
+              // Salvar credenciais
+              currentAuthCredentials = authHeader;
+              sessionStorage.setItem("auth_credentials", authHeader);
+              
+              // Esconder tela de login
+              if (gate) gate.classList.add("d-none");
+              
+              // Iniciar app
+              startAppAfterAuth();
+            } else {
+              debugLog('Login falhou: ' + response.status, 'error');
+              showAuthGateErro("Usuário ou senha incorretos.");
+              btnLogin.disabled = false;
+              btnLogin.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Entrar';
+              passwordInput.value = "";
+              passwordInput.focus();
             }
-            sessionStorage.removeItem('auth_redirect_initiated');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-google"></i> Entrar com Google';
-            showAuthGateErro((e && e.message) || "Não foi possível iniciar sessão.");
+          } catch (error) {
+            debugLog('Erro no login: ' + error.message, 'error');
+            showAuthGateErro("Erro ao conectar. Verifique sua conexão.");
+            btnLogin.disabled = false;
+            btnLogin.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Entrar';
           }
         };
       }
-
+      
+      // Botão de logout
       const lo = document.getElementById("btnLogout");
-      if (lo) lo.onclick = function () {
-        logoutFirebase();
-      };
+      if (lo) {
+        lo.onclick = function() {
+          logoutBasicAuth();
+        };
+      }
     }
 
     function toggleSecao(idSecao, idIcone) {

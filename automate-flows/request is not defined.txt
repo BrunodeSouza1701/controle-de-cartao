@@ -1,0 +1,44 @@
+{
+  "message": "request is not defined",
+  "exception": {
+    "stack": "    at Object.fetch (index.js:1852:41)",
+    "name": "ReferenceError",
+    "message": "request is not defined",
+    "timestamp": 1778845416077
+  },
+  "$workers": {
+    "event": {
+      "request": {
+        "url": "https://controle-cartao-api.brunos2tammy.workers.dev/compra",
+        "method": "POST",
+        "path": "/compra"
+      }
+    },
+    "outcome": "exception",
+    "scriptName": "controle-cartao-api",
+    "eventType": "fetch",
+    "executionModel": "stateless",
+    "scriptVersion": {
+      "id": "a796ccaf-a14b-440b-823a-4ee505b446b9"
+    },
+    "truncated": false,
+    "requestId": "9fc1e2ca78eefa0a"
+  },
+  "$metadata": {
+    "id": "01KRNQ5YMDFVFNXC6XTEJZN1TH",
+    "requestId": "9fc1e2ca78eefa0a",
+    "trigger": "POST /compra",
+    "service": "controle-cartao-api",
+    "level": "error",
+    "statusCode": 500,
+    "error": "request is not defined",
+    "message": "request is not defined",
+    "url": "https://controle-cartao-api.brunos2tammy.workers.dev/compra",
+    "account": "a2f3cda74b9d37bccdc257ced21e861f",
+    "provider": "cloudflare",
+    "type": "cf-worker",
+    "fingerprint": "e69e26a8b59b78d11ef06701b76c4424",
+    "origin": "fetch",
+    "messageTemplate": "request is not defined"
+  }
+}

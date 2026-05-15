@@ -1,0 +1,163 @@
+{
+  "name": "Capturar Compra Itaú",
+  "description": "Detecta notificações do app Itaú e adiciona compras automaticamente",
+  "version": "1.0",
+  "blocks": [
+    {
+      "id": 1,
+      "type": "notification_posted",
+      "package": "com.itau",
+      "title_pattern": ".*",
+      "text_pattern": ".*(compra|débito|transação).*",
+      "case_sensitive": false
+    },
+    {
+      "id": 2,
+      "type": "variable_set",
+      "name": "notificacao_texto",
+      "value": "{notification_text}"
+    },
+    {
+      "id": 3,
+      "type": "variable_set",
+      "name": "notificacao_titulo",
+      "value": "{notification_title}"
+    },
+    {
+      "id": 4,
+      "type": "expression",
+      "expression": "notificacao_texto.match(/R\\$\\s*([\\d.,]+)/)[1]",
+      "output": "valor_str"
+    },
+    {
+      "id": 5,
+      "type": "expression",
+      "expression": "valor_str.replace('.', '').replace(',', '.')",
+      "output": "valor"
+    },
+    {
+      "id": 6,
+      "type": "expression",
+      "expression": "notificacao_texto.match(/em\\s+(.+?)\\s+(no|na|\\.|$)/i)[1]",
+      "output": "estabelecimento"
+    },
+    {
+      "id": 7,
+      "type": "dialog_input",
+      "title": "Compra Detectada!",
+      "message": "Estabelecimento: {estabelecimento}\nValor: R$ {valor_str}\n\nCompra parcelada?",
+      "positive_button": "Sim",
+      "negative_button": "Não",
+      "output": "parcelado"
+    },
+    {
+      "id": 8,
+      "type": "fork",
+      "condition": "parcelado == true"
+    },
+    {
+      "id": 9,
+      "type": "dialog_input_number",
+      "title": "Quantas parcelas?",
+      "message": "Digite o número de parcelas:",
+      "default_value": "2",
+      "output": "num_parcelas"
+    },
+    {
+      "id": 10,
+      "type": "variable_set",
+      "name": "tipo_compra",
+      "value": "parcelado"
+    },
+    {
+      "id": 11,
+      "type": "fork_merge"
+    },
+    {
+      "id": 12,
+      "type": "variable_set",
+      "name": "tipo_compra",
+      "value": "avista"
+    },
+    {
+      "id": 13,
+      "type": "variable_set",
+      "name": "num_parcelas",
+      "value": "1"
+    },
+    {
+      "id": 14,
+      "type": "expression",
+      "expression": "new Date().toISOString().split('T')[0]",
+      "output": "data_hoje"
+    },
+    {
+      "id": 15,
+      "type": "dialog_input",
+      "title": "Categoria",
+      "message": "Selecione a categoria:",
+      "items": [
+        "Farmácia",
+        "Supermercado",
+        "Carro / Combustivel",
+        "Estacionamento",
+        "Acadêmico",
+        "Pão da Terra",
+        "Compra Fora",
+        "Gasto Pet",
+        "Necessidades Perfumaria",
+        "Roupas",
+        "Reparo Casa",
+        "Academia",
+        "Compra Online"
+      ],
+      "output": "categoria"
+    },
+    {
+      "id": 16,
+      "type": "http_request",
+      "method": "POST",
+      "url": "https://controle-cartao-api.brunos2tammy.workers.dev/compra",
+      "headers": {
+        "Authorization": "Bearer {firebase_token}",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "data": "{data_hoje}",
+        "valor": "{valor}",
+        "descricao": "{estabelecimento}",
+        "tipo": "{categoria}",
+        "cartao": "Itaú",
+        "tipoCompra": "{tipo_compra}",
+        "parcelas": "{num_parcelas}",
+        "parcelaAtual": 1
+      },
+      "output": "resposta"
+    },
+    {
+      "id": 17,
+      "type": "toast",
+      "message": "✅ Compra adicionada!\nR$ {valor_str} - {estabelecimento}",
+      "duration": "long"
+    }
+  ],
+  "connections": [
+    {"from": 1, "to": 2},
+    {"from": 2, "to": 3},
+    {"from": 3, "to": 4},
+    {"from": 4, "to": 5},
+    {"from": 5, "to": 6},
+    {"from": 6, "to": 7},
+    {"from": 7, "to": 8},
+    {"from": 8, "to": 9, "condition": "true"},
+    {"from": 8, "to": 12, "condition": "false"},
+    {"from": 9, "to": 10},
+    {"from": 10, "to": 11},
+    {"from": 12, "to": 13},
+    {"from": 13, "to": 11},
+    {"from": 11, "to": 14},
+    {"from": 14, "to": 15},
+    {"from": 15, "to": 16},
+    {"from": 16, "to": 17}
+  ]
+}

@@ -4,11 +4,13 @@ compatibility_date = "2024-12-01"
 
 # FIREBASE_PROJECT_ID: Console Firebase > Configurações do projeto
 # ALLOWED_ORIGIN: URL exata do site no Pages (ex.: https://xxx.pages.dev). Use * só em testes.
-# ALLOWED_EMAIL: única conta Google autorizada a sincronizar dados.
+# AUTH_USERNAME: Usuário para autenticação Basic Auth
+# AUTH_PASSWORD: Senha para autenticação Basic Auth
 [vars]
 FIREBASE_PROJECT_ID = "controle-de-cartao-47347"
 ALLOWED_ORIGIN = "https://controle-de-cartao.pages.dev"
-ALLOWED_EMAIL = "controle.cartao2026@gmail.com"
+AUTH_USERNAME = "admin"
+AUTH_PASSWORD = "Ccsouza2026"
 
 # Segredos (não versionar):
 #   npx wrangler secret put FIREBASE_CLIENT_EMAIL

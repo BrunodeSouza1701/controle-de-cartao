@@ -3,8 +3,10 @@ import * as jose from "jose";
 export interface Env {
   FIREBASE_PROJECT_ID: string;
   ALLOWED_ORIGIN: string;
-  /** E-mail único autorizado a usar a API (ex.: controle.cartao2026@gmail.com) */
-  ALLOWED_EMAIL: string;
+  /** Usuário autorizado a usar a API */
+  AUTH_USERNAME: string;
+  /** Senha do usuário autorizado */
+  AUTH_PASSWORD: string;
   FIREBASE_CLIENT_EMAIL: string;
   FIREBASE_PRIVATE_KEY: string;
 }
@@ -37,7 +39,7 @@ function corsHeaders(env: Env, _req: Request): HeadersInit {
   const allowed = env.ALLOWED_ORIGIN?.trim() || "*";
   return {
     "Access-Control-Allow-Origin": allowed === "" ? "*" : allowed,
-    "Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, PUT, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
     "Access-Control-Max-Age": "86400",
   };
@@ -54,39 +56,34 @@ function unauthorized(env: Env, req: Request, reason = "unauthorized"): Response
   return json({ error: reason }, env, req, 401);
 }
 
-async function verifyFirebaseIdToken(
-  idToken: string,
-  env: Env,
-): Promise<{ uid: string; email: string } | null> {
-  const projectId = env.FIREBASE_PROJECT_ID?.trim();
-  const allowed = env.ALLOWED_EMAIL?.trim().toLowerCase();
-  if (!projectId || !allowed) return null;
-
-  try {
-    const { payload } = await jose.jwtVerify(idToken, JWKS, {
-      issuer: `https://securetoken.google.com/${projectId}`,
-      audience: projectId,
-    });
-
-    const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
-    if (!email || email !== allowed) return null;
-
-    if (payload.email_verified === false) return null;
-
-    const uid = typeof payload.sub === "string" ? payload.sub : "";
-    if (!uid) return null;
-
-    return { uid, email };
-  } catch {
-    return null;
-  }
-}
-
-function bearerIdToken(req: Request): string {
+function verifyBasicAuth(req: Request, env: Env): boolean {
   const auth = req.headers.get("Authorization") || "";
-  if (!auth.startsWith("Bearer ")) return "";
-  return auth.slice(7).trim();
+  
+  if (!auth.startsWith("Basic ")) {
+    return false;
+  }
+  
+  const base64 = auth.slice(6).trim();
+  let decoded = "";
+  
+  try {
+    decoded = atob(base64);
+  } catch {
+    return false;
+  }
+  
+  const [username, password] = decoded.split(":");
+  
+  const validUsername = env.AUTH_USERNAME?.trim() || "";
+  const validPassword = env.AUTH_PASSWORD?.trim() || "";
+  
+  if (!validUsername || !validPassword) return false;
+  
+  return username === validUsername && password === validPassword;
 }
+
+// UID fixo para o usuário único
+const FIXED_UID = "admin-user-001";
 
 async function getGoogleAccessToken(env: Env): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
@@ -173,9 +170,9 @@ async function fetchUserDocument(
   return { exists: true, state: parsed ?? emptyState() };
 }
 
-async function readState(env: Env, uid: string): Promise<AppState> {
+async function readState(env: Env): Promise<AppState> {
   const accessToken = await getGoogleAccessToken(env);
-  const userPath = `userdata/${uid}`;
+  const userPath = `userdata/${FIXED_UID}`;
 
   const userDoc = await fetchUserDocument(env, accessToken, userPath);
   if (userDoc.exists) {
@@ -190,12 +187,12 @@ async function readState(env: Env, uid: string): Promise<AppState> {
   return emptyState();
 }
 
-async function writeState(env: Env, uid: string, state: AppState): Promise<void> {
+async function writeState(env: Env, state: AppState): Promise<void> {
   const pid = env.FIREBASE_PROJECT_ID?.trim();
   if (!pid) throw new Error("FIREBASE_PROJECT_ID ausente");
 
   const accessToken = await getGoogleAccessToken(env);
-  const relativePath = `userdata/${uid}`;
+  const relativePath = `userdata/${FIXED_UID}`;
   const stringValue = JSON.stringify(state);
   const body = {
     fields: {
@@ -225,28 +222,22 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(env, req) });
     }
 
-    const idToken = bearerIdToken(req);
-    if (!idToken) {
-      return unauthorized(env, req, "missing_id_token");
-    }
-
-    const session = await verifyFirebaseIdToken(idToken, env);
-    if (!session) {
-      return unauthorized(env, req, "invalid_or_forbidden");
+    if (!verifyBasicAuth(req, env)) {
+      return unauthorized(env, req, "invalid_credentials");
     }
 
     const url = new URL(req.url);
-    if (url.pathname.replace(/\/$/, "") !== "/state") {
-      return json({ error: "not_found" }, env, req, 404);
-    }
+    const pathname = url.pathname.replace(/\/$/, "");
 
     try {
-      if (req.method === "GET") {
-        const state = await readState(env, session.uid);
+      // Endpoint: GET /state - Buscar estado completo
+      if (pathname === "/state" && req.method === "GET") {
+        const state = await readState(env);
         return json(state, env, req);
       }
 
-      if (req.method === "PUT") {
+      // Endpoint: PUT /state - Substituir estado completo
+      if (pathname === "/state" && req.method === "PUT") {
         const body = (await req.json()) as Partial<AppState>;
         const state: AppState = {
           compras: Array.isArray(body.compras) ? body.compras : [],
@@ -256,11 +247,54 @@ export default {
               ? (body.fechamentosCartao as AppState["fechamentosCartao"])
               : { global: {}, mensal: {} },
         };
-        await writeState(env, session.uid, state);
+        await writeState(env, state);
         return json({ ok: true }, env, req);
       }
 
-      return json({ error: "method_not_allowed" }, env, req, 405);
+      // Endpoint: POST /compra - Adicionar uma compra (para automação)
+      if (pathname === "/compra" && req.method === "POST") {
+        const body = (await req.json()) as {
+          data: string;
+          valor: number;
+          descricao: string;
+          tipo: string;
+          cartao: string;
+          tipoCompra: string;
+          parcelas?: number;
+          parcelaAtual?: number;
+        };
+
+        // Validar campos obrigatórios
+        if (!body.data || !body.valor || !body.descricao || !body.cartao) {
+          return json({ error: "campos_obrigatorios", message: "data, valor, descricao e cartao são obrigatórios" }, env, req, 400);
+        }
+
+        // Buscar estado atual
+        const state = await readState(env);
+
+        // Criar nova compra
+        const novaCompra = {
+          id: Date.now(),
+          data: body.data,
+          valor: body.valor,
+          descricao: body.descricao,
+          tipo: body.tipo || "Outros",
+          cartao: body.cartao,
+          tipoCompra: body.tipoCompra || "avista",
+          parcelas: body.parcelas || 1,
+          parcelaAtual: body.parcelaAtual || 1,
+        };
+
+        // Adicionar à lista de compras
+        state.compras.push(novaCompra);
+
+        // Salvar estado atualizado
+        await writeState(env, state);
+
+        return json({ ok: true, compra: novaCompra }, env, req, 201);
+      }
+
+      return json({ error: "not_found" }, env, req, 404);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "erro";
       return json({ error: "server_error", message: msg }, env, req, 500);
