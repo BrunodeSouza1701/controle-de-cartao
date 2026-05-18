@@ -354,6 +354,11 @@ export default {
 
       // Endpoint: POST /compra - Adicionar uma compra (para automação)
       if (pathname === "/compra" && req.method === "POST") {
+        // Verificar autenticação
+        if (!verifyBasicAuth(req, env)) {
+          return unauthorized(env, req, "autenticacao_obrigatoria");
+        }
+
         const body = (await req.json()) as {
           data: string;
           valor: number;
