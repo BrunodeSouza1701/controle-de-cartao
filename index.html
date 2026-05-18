@@ -249,53 +249,56 @@
     }
 
     .historico-meses-card {
-      width: 150px;
-      flex: 0 0 150px;
-      background: #eef6ff;
-      border: 1px solid #cfe2ff !important;
+      background: #f8f9fa;
+      border: 1px solid #dee2e6 !important;
     }
 
     .historico-meses-card h6 {
-      color: #0d6efd;
+      color: #212529;
       font-weight: 800;
       font-size: 18px;
     }
 
-    .historico-ano {
-      font-size: 12px;
-      font-weight: 800;
-      color: #6c757d;
-      margin: 10px 0 4px;
+    .historico-meses {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: end;
+      gap: 10px;
     }
 
     .historico-mes {
       width: 100%;
       border: 0;
       background: transparent;
-      padding: 7px 8px;
-      border-radius: 10px;
-      text-align: left;
-      display: flex;
-      justify-content: space-between;
-      gap: 6px;
-      font-size: 12px;
-      color: #212529;
+      padding: 10px 4px 14px;
+      border-bottom: 3px solid transparent;
+      border-radius: 0;
+      text-align: center;
+      font-size: 18px;
+      color: #6c757d;
     }
 
     .historico-mes:hover {
-      background: #f1f3f5;
+      color: #0d6efd;
     }
 
     .historico-mes.ativo {
-      background: #084298;
-      color: white;
+      color: #0d6efd;
       font-weight: 800;
-      box-shadow: 0 4px 10px rgba(8, 66, 152, 0.35);
+      border-bottom-color: #0d6efd;
     }
 
     .historico-valor {
+      display: block;
+      margin-top: 3px;
       white-space: nowrap;
       font-weight: 700;
+      font-size: 11px;
+      color: #198754;
+    }
+
+    .historico-mes.ativo .historico-valor {
+      color: #0d6efd;
     }
 
     .auth-gate {
@@ -1647,10 +1650,6 @@
     function renderizarHistoricoMeses(compras, mesSelecionado, anoSelecionado, nomesMeses) {
       const historico = document.getElementById("historicoMeses");
       const totaisPorMes = {};
-      const hoje = new Date();
-      const mesAtualCalendario = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-      const mesSelecionadoData = new Date(anoSelecionado, mesSelecionado, 1);
-      let limite = mesSelecionadoData > mesAtualCalendario ? mesSelecionadoData : mesAtualCalendario;
 
       compras.forEach(c => {
         let dataCompra = normalizarData(c.data);
@@ -1663,45 +1662,30 @@
         for (let i = 0; i < totalParcelas; i++) {
           let d = new Date(competenciaBase);
           d.setMonth(competenciaBase.getMonth() + i);
-          let mesDaParcela = new Date(d.getFullYear(), d.getMonth(), 1);
-
-          if (mesDaParcela > limite) continue;
 
           const chave = chaveMesAno(d.getFullYear(), d.getMonth());
           totaisPorMes[chave] = (totaisPorMes[chave] || 0) + valorParcela;
         }
       });
 
-      const chaveSelecionada = chaveMesAno(anoSelecionado, mesSelecionado);
-      totaisPorMes[chaveSelecionada] = totaisPorMes[chaveSelecionada] || 0;
+      const mesesVisiveis = [-1, 0, 1].map(delta => {
+        const data = new Date(anoSelecionado, mesSelecionado + delta, 1);
+        const ano = data.getFullYear();
+        const mes = data.getMonth();
+        const chave = chaveMesAno(ano, mes);
 
-      const meses = Object.entries(totaisPorMes)
-        .filter(([chave, valor]) => valor > 0 || chave === chaveSelecionada)
-        .sort(([a], [b]) => a.localeCompare(b));
+        return {
+          ano,
+          mes,
+          valor: totaisPorMes[chave] || 0
+        };
+      });
 
       historico.innerHTML = "";
+      const grupoMeses = document.createElement("div");
+      grupoMeses.className = "historico-meses";
 
-      if (meses.length === 0) {
-        historico.innerHTML = `<small class="text-muted">Sem meses anteriores.</small>`;
-        return;
-      }
-
-      let anoAtualHistorico = "";
-
-      meses.forEach(([chave, valor]) => {
-        const [anoTexto, mesTexto] = chave.split("-");
-        const ano = parseInt(anoTexto);
-        const mes = parseInt(mesTexto) - 1;
-
-        if (anoTexto !== anoAtualHistorico) {
-          anoAtualHistorico = anoTexto;
-
-          let tituloAno = document.createElement("div");
-          tituloAno.className = "historico-ano";
-          tituloAno.innerText = anoTexto;
-          historico.appendChild(tituloAno);
-        }
-
+      mesesVisiveis.forEach(({ ano, mes, valor }) => {
         let botao = document.createElement("button");
         botao.type = "button";
         botao.className = "historico-mes";
@@ -1716,8 +1700,10 @@
           <span class="historico-valor">${valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
         `;
 
-        historico.appendChild(botao);
+        grupoMeses.appendChild(botao);
       });
+
+      historico.appendChild(grupoMeses);
     }
 
     // MOSTRAR
