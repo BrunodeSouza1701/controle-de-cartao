@@ -384,7 +384,7 @@
 
               <select id="tipo" class="form-select mb-2"></select>
 
-              <input id="descricao" class="form-control mb-2" placeholder="Descrição" autocapitalize="words">
+              <input id="descricao" class="form-control mb-2" placeholder="Descrição">
               <div class="invalid-feedback">
                 Informe a descrição
               </div>
@@ -1463,17 +1463,8 @@
       }
     }
 
-    function capitalizarDescricao() {
-      const posicaoCursor = descricao.selectionStart;
-
-      descricao.value = descricao.value.replace(/\b\p{L}/gu, letra => letra.toUpperCase());
-
-      descricao.setSelectionRange(posicaoCursor, posicaoCursor);
-    }
-
     descricao.addEventListener("input", validarFormulario);
     descricao.addEventListener("input", sugerirTipoPelaDescricao);
-    descricao.addEventListener("input", capitalizarDescricao);
     valor.addEventListener("input", validarFormulario);
     cartao.addEventListener("change", validarFormulario);
     tipo.addEventListener("change", validarFormulario);
