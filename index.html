@@ -181,6 +181,31 @@
       font-size: 14px;
     }
 
+    .filtro-cartao {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .filtro-cartao button {
+      min-height: 42px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .filtro-cartao img {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+    }
+
     .categoria-clicavel {
       cursor: pointer;
     }
@@ -441,11 +466,22 @@
           </button>
           <div id="secaoLancamentos" class="section-content">
             <input id="buscaLancamento" class="form-control mb-2" placeholder="Pesquisar lançamento" inputmode="search">
+            <div class="filtro-cartao" aria-label="Filtrar lançamentos por cartão">
+              <button type="button" class="btn btn-primary" data-filtro-cartao="" onclick="filtrarPorCartao('')">
+                <i class="bi bi-credit-card-2-front"></i> Todos
+              </button>
+              <button type="button" class="btn btn-outline-primary" data-filtro-cartao="Itau" onclick="filtrarPorCartao('Itau')">
+                <img src="img/itau.png" alt=""> Itaú
+              </button>
+              <button type="button" class="btn btn-outline-primary" data-filtro-cartao="Carrefour" onclick="filtrarPorCartao('Carrefour')">
+                <img src="img/carrefour.png" alt=""> Carrefour
+              </button>
+            </div>
             <div id="filtroTipoAtivo" class="filtro-ativo d-none"></div>
             <ul id="lista" class="list-group"></ul>
             <div id="totalFiltroCategoria" class="card border-0 bg-warning-subtle mt-3 d-none">
               <div class="p-3">
-                <small class="text-muted">Total da Categoria</small>
+                <small class="text-muted">Total filtrado</small>
                 <h4 class="m-0 text-success">R$ <span id="valorTotalFiltroCategoria">0,00</span></h4>
                 <strong id="nomeTotalFiltroCategoria"></strong>
               </div>
@@ -855,6 +891,27 @@
 
     function limparFiltroTipo() {
       filtroTipoAtual = "";
+      mostrar();
+    }
+
+    function filtrarPorCartao(cartaoFiltro) {
+      filtroCartaoAtual = cartaoFiltro;
+      mostrar();
+    }
+
+    function atualizarBotoesFiltroCartao() {
+      document.querySelectorAll("[data-filtro-cartao]").forEach(botao => {
+        const ativo = botao.dataset.filtroCartao === filtroCartaoAtual;
+        botao.classList.toggle("btn-primary", ativo);
+        botao.classList.toggle("btn-outline-primary", !ativo);
+      });
+    }
+
+    function limparFiltrosLancamentos() {
+      filtroTipoAtual = "";
+      filtroCartaoAtual = "";
+      buscaLancamentoAtual = "";
+      buscaLancamento.value = "";
       mostrar();
     }
 
@@ -1299,9 +1356,15 @@
       return cartao?.toString().trim() || "Sem cartão";
     }
 
+    function nomeCartaoExibicao(cartao) {
+      const nomePadronizado = nomeCartaoPadronizado(cartao);
+      return nomePadronizado === "Itau" ? "Itaú" : nomePadronizado;
+    }
+
     let editandoIndex = null;
     let compraOriginalEdicao = null;
     let filtroTipoAtual = "";
+    let filtroCartaoAtual = "";
     let buscaLancamentoAtual = "";
 
     // FORMATAR
@@ -1463,8 +1526,19 @@
       }
     }
 
+    function capitalizarPrimeiraPalavraDescricao() {
+      const posicaoCursor = descricao.selectionStart;
+
+      descricao.value = descricao.value.replace(/^(\s*)(\p{L})/u, (_, espacos, letra) =>
+        espacos + letra.toLocaleUpperCase("pt-BR")
+      );
+
+      descricao.setSelectionRange(posicaoCursor, posicaoCursor);
+    }
+
     descricao.addEventListener("input", validarFormulario);
     descricao.addEventListener("input", sugerirTipoPelaDescricao);
+    descricao.addEventListener("input", capitalizarPrimeiraPalavraDescricao);
     valor.addEventListener("input", validarFormulario);
     cartao.addEventListener("change", validarFormulario);
     tipo.addEventListener("change", validarFormulario);
@@ -1755,7 +1829,8 @@ ${num === 1 ? `
               elemento: li,
               valor: valorParcela,
               descricao: c.descricao,
-              tipo: c.tipo
+              tipo: c.tipo,
+              cartao: c.cartao
             });
 
             total += valorParcela;
@@ -1792,31 +1867,39 @@ ${num === 1 ? `
       });
 
       lancamentos.sort((a, b) => a.data - b.data);
+      atualizarBotoesFiltroCartao();
 
       let dataAtualGrupo = "";
       const filtroTipoAtivo = document.getElementById("filtroTipoAtivo");
-      const lancamentosFiltrados = filtroTipoAtual
+      const lancamentosPorTipo = filtroTipoAtual
         ? lancamentos.filter(l => normalizarTexto(l.tipo) === normalizarTexto(filtroTipoAtual))
         : lancamentos;
+      const lancamentosFiltrados = filtroCartaoAtual
+        ? lancamentosPorTipo.filter(l => nomeCartaoPadronizado(l.cartao) === filtroCartaoAtual)
+        : lancamentosPorTipo;
       const buscaNormalizada = normalizarTexto(buscaLancamentoAtual);
       const lancamentosVisiveis = buscaNormalizada
         ? lancamentosFiltrados.filter(l => normalizarTexto(l.descricao).includes(buscaNormalizada))
         : lancamentosFiltrados;
 
-      if (filtroTipoAtual) {
+      if (filtroTipoAtual || filtroCartaoAtual) {
         const totalFiltro = lancamentosVisiveis.reduce((soma, l) => soma + l.valor, 0);
+        const filtrosAtivos = [
+          filtroTipoAtual ? `<span><strong>Categoria:</strong> ${filtroTipoAtual}</span>` : "",
+          filtroCartaoAtual ? `<span><strong>Cartão:</strong> ${getIconeCartao(filtroCartaoAtual)}${nomeCartaoExibicao(filtroCartaoAtual)}</span>` : ""
+        ].filter(Boolean).join("");
 
         filtroTipoAtivo.classList.remove("d-none");
         filtroTipoAtivo.innerHTML = `
-    <span><strong>Filtro:</strong> ${filtroTipoAtual}</span>
-    <button type="button" class="btn btn-sm btn-danger rounded-pill fw-bold" onclick="limparFiltroTipo()">
+    <span class="d-flex flex-wrap align-items-center gap-2">${filtrosAtivos}</span>
+    <button type="button" class="btn btn-sm btn-danger rounded-pill fw-bold" onclick="limparFiltrosLancamentos()">
       <i class="bi bi-x-circle"></i> Limpar Filtro
     </button>
   `;
 
         totalFiltroCategoria.classList.remove("d-none");
         valorTotalFiltroCategoria.innerText = totalFiltro.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        nomeTotalFiltroCategoria.innerText = filtroTipoAtual;
+        nomeTotalFiltroCategoria.innerText = [filtroTipoAtual, filtroCartaoAtual ? nomeCartaoExibicao(filtroCartaoAtual) : ""].filter(Boolean).join(" · ");
       } else {
         filtroTipoAtivo.classList.add("d-none");
         filtroTipoAtivo.innerHTML = "";
@@ -1826,7 +1909,7 @@ ${num === 1 ? `
         nomeTotalFiltroCategoria.innerText = "";
       }
 
-      if (lancamentosVisiveis.length === 0 && (filtroTipoAtual || buscaLancamentoAtual)) {
+      if (lancamentosVisiveis.length === 0 && (filtroTipoAtual || filtroCartaoAtual || buscaLancamentoAtual)) {
         let li = document.createElement("li");
         li.className = "list-group-item text-muted";
         li.innerText = "Nenhuma compra encontrada.";
