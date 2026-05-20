@@ -108,6 +108,81 @@ function maskSecret(s?: string | null): string | null {
   return s[0] + '*'.repeat(Math.max(1, s.length - 2)) + s[s.length - 1];
 }
 
+function parseMoneyBR(valor: string): number {
+  return Number(valor.replace(/\./g, "").replace(",", "."));
+}
+
+function parseItauNotification(texto: string): {
+  data: string;
+  valor: number;
+  descricao: string;
+  tipo: string;
+  cartao: string;
+  tipoCompra: string;
+  debug: Record<string, unknown>;
+} {
+  const raw = texto.replace(/\s+/g, " ").trim();
+  const valorMatch = raw.match(/R(?:\$|S)\s*([\d.]+,\d{2})/i);
+  const dataMatch = raw.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  const descMatch = raw.match(/final\s+\d+\s*-\s*(.*?)\s*-\s*R(?:\$|S)\s*/i);
+
+  const debug = {
+    parser: "itau",
+    recebeuTexto: raw,
+    achouValor: !!valorMatch,
+    achouData: !!dataMatch,
+    achouDescricao: !!descMatch,
+  };
+
+  return {
+    data: dataMatch ? `${dataMatch[3]}-${dataMatch[2]}-${dataMatch[1]}` : "",
+    valor: valorMatch ? parseMoneyBR(valorMatch[1]) : 0,
+    descricao: descMatch ? descMatch[1].trim() : "",
+    tipo: "Outros",
+    cartao: "Itaú",
+    tipoCompra: "avista",
+    debug,
+  };
+}
+
+function normalizeKey(texto: string): string {
+  return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function parseCarrefourSms(texto: string): {
+  data: string;
+  valor: number;
+  descricao: string;
+  tipo: string;
+  cartao: string;
+  tipoCompra: string;
+  debug: Record<string, unknown>;
+} {
+  const raw = texto.replace(/\s+/g, " ").trim();
+  const valorMatch = raw.match(/R(?:\$|S)\s*([\d.]+,\d{2})/i);
+  const dataMatch = raw.match(/compra\s+aprovada\s+em\s+(\d{2})\/(\d{2})/i);
+  const descMatch = raw.match(/\sno\s+(.+?)\.\s*cartao\s+final\s+\d+/i);
+  const anoAtual = new Date().getUTCFullYear();
+
+  const debug = {
+    parser: "carrefour",
+    recebeuTexto: raw,
+    achouValor: !!valorMatch,
+    achouData: !!dataMatch,
+    achouDescricao: !!descMatch,
+  };
+
+  return {
+    data: dataMatch ? `${anoAtual}-${dataMatch[2]}-${dataMatch[1]}` : "",
+    valor: valorMatch ? parseMoneyBR(valorMatch[1]) : 0,
+    descricao: descMatch ? descMatch[1].trim() : "",
+    tipo: "Outros",
+    cartao: "Carrefour",
+    tipoCompra: "avista",
+    debug,
+  };
+}
+
 // UID fixo para o usuário único
 const FIXED_UID = "admin-user-001";
 
@@ -398,6 +473,65 @@ export default {
         await writeState(env, state);
 
         return json({ ok: true, compra: novaCompra }, env, req, 201);
+      }
+
+      // Endpoint: POST /compra-notificacao - Recebe texto bruto da notificação e extrai a compra na API
+      if (pathname === "/compra-notificacao" && req.method === "POST") {
+        const body = (await req.json()) as {
+          texto?: string;
+          cartao?: string;
+        };
+
+        const texto = body.texto?.toString().trim() || "";
+        const cartao = body.cartao?.toString().trim() || "Itaú";
+
+        if (!texto) {
+          return json({ error: "texto_obrigatorio", message: "texto é obrigatório" }, env, req, 400);
+        }
+
+        const cartaoKey = normalizeKey(cartao);
+        if (cartaoKey !== "itau" && cartaoKey !== "carrefour") {
+          return json({ error: "cartao_nao_suportado", message: "por enquanto apenas Itaú e Carrefour são suportados", cartao }, env, req, 400);
+        }
+
+        const compraExtraida = cartaoKey === "carrefour" ? parseCarrefourSms(texto) : parseItauNotification(texto);
+
+        if (!compraExtraida.data || !compraExtraida.valor || !compraExtraida.descricao || !compraExtraida.cartao) {
+          return json(
+            {
+              error: "notificacao_nao_reconhecida",
+              message: "não foi possível extrair data, valor e descrição da notificação",
+              debug: compraExtraida.debug,
+              compraExtraida: {
+                data: compraExtraida.data,
+                valor: compraExtraida.valor,
+                descricao: compraExtraida.descricao,
+                cartao: compraExtraida.cartao,
+              },
+            },
+            env,
+            req,
+            400,
+          );
+        }
+
+        const state = await readState(env);
+        const novaCompra = {
+          id: Date.now(),
+          data: compraExtraida.data,
+          valor: compraExtraida.valor,
+          descricao: compraExtraida.descricao,
+          tipo: compraExtraida.tipo,
+          cartao: compraExtraida.cartao,
+          tipoCompra: compraExtraida.tipoCompra,
+          parcelas: 1,
+          parcelaAtual: 1,
+        };
+
+        state.compras.push(novaCompra);
+        await writeState(env, state);
+
+        return json({ ok: true, compra: novaCompra, debug: compraExtraida.debug }, env, req, 201);
       }
 
       // Endpoint: GET /debug - Verifica se as variáveis de ambiente estão carregadas (senha mascarada)
