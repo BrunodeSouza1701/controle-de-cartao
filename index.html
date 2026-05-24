@@ -1384,15 +1384,15 @@
 
     function ordemCompra(compra) {
       const ordem = Number(compra?.ordem);
-      return Number.isFinite(ordem) ? ordem : Number(compra?.id || 0);
+      return Number.isFinite(ordem) ? ordem : -Number(compra?.id || 0);
     }
 
     function proximaOrdemCompra(compras, dataCompra) {
-      const maiorOrdem = compras
+      const menorOrdem = compras
         .filter(compra => normalizarData(compra.data) === dataCompra)
-        .reduce((maior, compra) => Math.max(maior, ordemCompra(compra)), 0);
+        .reduce((menor, compra) => Math.min(menor, ordemCompra(compra)), Infinity);
 
-      return Math.max(maiorOrdem + 1, Date.now());
+      return Number.isFinite(menorOrdem) ? menorOrdem - 1 : Date.now();
     }
 
     function mesmaDataCompra(a, b) {
