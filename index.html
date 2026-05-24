@@ -1063,6 +1063,15 @@
     function mesCompetenciaCompra(cartao, dataBase) {
       const inicio = obterInicioFatura(cartao, dataBase);
       const competencia = new Date(dataBase.getFullYear(), dataBase.getMonth(), 1);
+      const cartaoResumo = nomeCartaoPadronizado(cartao);
+
+      if (cartaoResumo === "Carrefour") {
+        if (dataBase.getDate() > inicio) {
+          competencia.setMonth(competencia.getMonth() + 1);
+        }
+
+        return competencia;
+      }
 
       if (dataBase.getDate() < inicio) {
         competencia.setMonth(competencia.getMonth() - 1);
@@ -1083,9 +1092,12 @@
       const inicio = usarMensal ? (valorMensal ?? valorGlobal ?? 1) : (valorGlobal ?? 1);
 
       fechamentoDiaInicio.value = inicio;
+      const resumoRegra = cartaoResumo === "Carrefour"
+        ? `compras até o dia ${inicio} ficam no mês atual; depois disso caem no próximo mês.`
+        : `compras antes do dia ${inicio} caem no mês anterior.`;
       resumoFechamento.innerText = usarMensal
-        ? `Regra deste mês: compras antes do dia ${inicio} caem no mês anterior.`
-        : `Regra geral: compras antes do dia ${inicio} caem no mês anterior.`;
+        ? `Regra deste mês: ${resumoRegra}`
+        : `Regra geral: ${resumoRegra}`;
     }
 
     async function salvarFechamentoCartao() {
