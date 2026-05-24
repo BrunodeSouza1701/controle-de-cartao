@@ -62,6 +62,8 @@
       color: white;
       padding: 12px 15px;
       display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
       justify-content: space-between;
       align-items: center;
       z-index: 999;
@@ -175,6 +177,12 @@
       display: block;
       font-size: 16px;
       font-weight: 800;
+    }
+
+    .app-config {
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
 
     .section-toggle {
@@ -314,6 +322,7 @@
 
     .bloco-esquerda {
       display: flex;
+      flex-direction: column;
       gap: 10px;
       align-items: flex-start;
     }
@@ -324,8 +333,16 @@
     }
 
     .historico-meses-card {
+      width: 100%;
       background: #f8f9fa;
       border: 1px solid #dee2e6 !important;
+    }
+
+    .meses-config {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(92px, 0.45fr);
+      gap: 8px;
+      margin-bottom: 10px;
     }
 
     .historico-meses-card h6 {
@@ -411,6 +428,42 @@
         flex: none;
       }
     }
+
+    @media (max-width: 767px) {
+      body {
+        padding-top: 138px;
+      }
+
+      .app-header {
+        align-items: stretch;
+      }
+
+      .app-mes-atual {
+        min-width: 0;
+        width: calc(50% - 4px);
+      }
+
+      .app-total {
+        min-width: 0;
+        width: calc(50% - 4px);
+      }
+
+      .app-totais-cartoes {
+        order: 3;
+        width: 100%;
+      }
+
+      .app-total-card {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .app-config {
+        order: 4;
+        width: 100%;
+        justify-content: flex-end;
+      }
+    }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -474,10 +527,8 @@
       </div>
     </div>
 
-    <div class="d-flex gap-2 align-items-center">
+    <div class="app-config">
       <button type="button" id="btnLogout" class="btn btn-sm btn-outline-light d-none" title="Sair da conta">Sair</button>
-      <select id="mesFiltro" class="form-select form-select-sm"></select>
-      <select id="anoFiltro" class="form-select form-select-sm"></select>
     </div>
 
   </div>
@@ -491,6 +542,10 @@
         <div class="bloco-esquerda">
           <div class="card p-3 shadow-sm border-0 historico-meses-card">
             <h6 class="mb-2"><i class="bi bi-calendar3"></i> Meses</h6>
+            <div class="meses-config">
+              <select id="mesFiltro" class="form-select form-select-sm"></select>
+              <select id="anoFiltro" class="form-select form-select-sm"></select>
+            </div>
             <div id="historicoMeses"></div>
           </div>
 
