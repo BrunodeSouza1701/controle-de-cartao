@@ -120,6 +120,45 @@
       font-weight: 800;
     }
 
+    .app-totais-cartoes {
+      display: flex;
+      gap: 6px;
+      align-items: stretch;
+    }
+
+    .app-total-card {
+      min-width: 96px;
+      background: rgba(255, 255, 255, 0.14);
+      padding: 7px 9px;
+      border-radius: 14px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+      line-height: 1.1;
+    }
+
+    .app-total-card small {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      opacity: 0.9;
+      font-size: 11px;
+      margin-bottom: 3px;
+    }
+
+    .app-total-card img {
+      width: 17px;
+      height: 17px;
+      object-fit: contain;
+    }
+
+    .app-total-card strong {
+      display: block;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
     .section-toggle {
       width: 100%;
       border: none;
@@ -392,6 +431,17 @@
     <div class="app-total">
       <small>Total do Mês</small>
       <strong>R$ <span id="total">0</span></strong>
+    </div>
+
+    <div class="app-totais-cartoes" aria-label="Totais por cartão">
+      <div class="app-total-card">
+        <small><img src="img/itau.png" alt=""> Itaú</small>
+        <strong>R$ <span id="totalItau">0</span></strong>
+      </div>
+      <div class="app-total-card">
+        <small><img src="img/carrefour.png" alt=""> Carrefour</small>
+        <strong>R$ <span id="totalCarrefour">0</span></strong>
+      </div>
     </div>
 
     <div class="d-flex gap-2 align-items-center">
@@ -1791,6 +1841,7 @@
       lista.innerHTML = "";
 
       let total = 0;
+      let totalPorCartaoMes = { Itau: 0, Carrefour: 0 };
       let resumo = {};
       let resumoCartao = {};
       let resumoAVista = {};
@@ -1904,6 +1955,10 @@ ${num === 1 ? `
             });
 
             total += valorParcela;
+            const cartaoPadronizadoMes = nomeCartaoPadronizado(c.cartao);
+            if (cartaoPadronizadoMes === "Itau" || cartaoPadronizadoMes === "Carrefour") {
+              totalPorCartaoMes[cartaoPadronizadoMes] += valorParcela;
+            }
 
             resumo[c.tipo] = (resumo[c.tipo] || 0) + valorParcela;
 
@@ -2003,6 +2058,8 @@ ${num === 1 ? `
       });
 
       totalSpan.innerText = total.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+      totalItau.innerText = totalPorCartaoMes.Itau.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+      totalCarrefour.innerText = totalPorCartaoMes.Carrefour.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
 
       resumoCategoria.innerHTML = "";
       resumoOrcamentos.innerHTML = "";
