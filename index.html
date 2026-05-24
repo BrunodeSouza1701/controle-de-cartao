@@ -159,6 +159,24 @@
       white-space: nowrap;
     }
 
+    .app-mes-atual {
+      min-width: 140px;
+      line-height: 1.1;
+    }
+
+    .app-mes-atual small {
+      display: block;
+      opacity: 0.82;
+      font-size: 12px;
+      margin-top: 3px;
+    }
+
+    .app-mes-atual strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
     .section-toggle {
       width: 100%;
       border: none;
@@ -318,20 +336,39 @@
 
     .historico-meses {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: 36px repeat(3, minmax(0, 1fr)) 36px;
       align-items: end;
-      gap: 10px;
+      gap: 6px;
+    }
+
+    .historico-navegacao {
+      width: 36px;
+      height: 54px;
+      border: 0;
+      background: transparent;
+      color: #0d6efd;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      border-radius: 12px;
+      align-self: stretch;
+    }
+
+    .historico-navegacao:hover {
+      background: #e7f1ff;
     }
 
     .historico-mes {
       width: 100%;
       border: 0;
       background: transparent;
-      padding: 10px 4px 14px;
+      padding: 9px 2px 12px;
       border-bottom: 3px solid transparent;
       border-radius: 0;
       text-align: center;
-      font-size: 18px;
+      font-size: 17px;
       color: #6c757d;
     }
 
@@ -415,17 +452,10 @@
 
   <div class="app-header">
 
-    <div>
+    <div class="app-mes-atual">
       <h6 class="m-0 fw-bold">Controle</h6>
-      <div class="d-flex align-items-center gap-1">
-        <button type="button" class="btn btn-sm btn-light rounded-circle px-2 py-1" onclick="mudarMesSelecionado(-1)">
-          <i class="bi bi-chevron-left"></i>
-        </button>
-        <small id="mesAtual" class="fw-semibold"></small>
-        <button type="button" class="btn btn-sm btn-light rounded-circle px-2 py-1" onclick="mudarMesSelecionado(1)">
-          <i class="bi bi-chevron-right"></i>
-        </button>
-      </div>
+      <small>Mês Atual</small>
+      <strong id="mesAtual"></strong>
     </div>
 
     <div class="app-total">
@@ -1810,6 +1840,14 @@
       const grupoMeses = document.createElement("div");
       grupoMeses.className = "historico-meses";
 
+      const botaoAnterior = document.createElement("button");
+      botaoAnterior.type = "button";
+      botaoAnterior.className = "historico-navegacao";
+      botaoAnterior.setAttribute("aria-label", "Mês anterior");
+      botaoAnterior.onclick = () => mudarMesSelecionado(-1);
+      botaoAnterior.innerHTML = `<i class="bi bi-chevron-left"></i>`;
+      grupoMeses.appendChild(botaoAnterior);
+
       mesesVisiveis.forEach(({ ano, mes, valor }) => {
         let botao = document.createElement("button");
         botao.type = "button";
@@ -1827,6 +1865,14 @@
 
         grupoMeses.appendChild(botao);
       });
+
+      const botaoProximo = document.createElement("button");
+      botaoProximo.type = "button";
+      botaoProximo.className = "historico-navegacao";
+      botaoProximo.setAttribute("aria-label", "Próximo mês");
+      botaoProximo.onclick = () => mudarMesSelecionado(1);
+      botaoProximo.innerHTML = `<i class="bi bi-chevron-right"></i>`;
+      grupoMeses.appendChild(botaoProximo);
 
       historico.appendChild(grupoMeses);
     }
