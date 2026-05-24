@@ -34,6 +34,24 @@
       background: #f1f3f5;
     }
 
+    .acoes-compra {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .acoes-compra .btn {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+    }
+
     /* 🔥 NOVO - HEADER APP */
     .app-header {
       position: fixed;
@@ -1364,6 +1382,23 @@
       return nomePadronizado === "Itau" ? "Itaú" : nomePadronizado;
     }
 
+    function ordemCompra(compra) {
+      const ordem = Number(compra?.ordem);
+      return Number.isFinite(ordem) ? ordem : Number(compra?.id || 0);
+    }
+
+    function proximaOrdemCompra(compras, dataCompra) {
+      const maiorOrdem = compras
+        .filter(compra => normalizarData(compra.data) === dataCompra)
+        .reduce((maior, compra) => Math.max(maior, ordemCompra(compra)), 0);
+
+      return Math.max(maiorOrdem + 1, Date.now());
+    }
+
+    function mesmaDataCompra(a, b) {
+      return normalizarData(a.data) === normalizarData(b.data);
+    }
+
     let editandoIndex = null;
     let compraOriginalEdicao = null;
     let filtroTipoAtual = "";
@@ -1413,7 +1448,10 @@
         cartao: cartao.value,
         valor: valorConvertido,
         parcelas: parcelas,
-        data: data.value
+        data: data.value,
+        ordem: editandoIndex !== null && mesmaDataCompra(compras[editandoIndex], { data: data.value })
+          ? ordemCompra(compras[editandoIndex])
+          : proximaOrdemCompra(compras, normalizarData(data.value))
       };
 
 
@@ -1561,6 +1599,31 @@
 
       let compras = JSON.parse(localStorage.getItem("compras")) || [];
       compras = compras.filter(c => c.id != id);
+      persistSet("compras", JSON.stringify(compras));
+      mostrar();
+    }
+
+    function moverCompra(id, direcao) {
+      const compras = JSON.parse(localStorage.getItem("compras")) || [];
+      const compraAtual = compras.find(c => c.id == id);
+
+      if (!compraAtual) return;
+
+      const comprasDoDia = compras
+        .filter(compra => mesmaDataCompra(compra, compraAtual))
+        .sort((a, b) => ordemCompra(a) - ordemCompra(b));
+      const indiceAtual = comprasDoDia.findIndex(compra => compra.id == id);
+      const indiceDestino = indiceAtual + direcao;
+
+      if (indiceAtual < 0 || indiceDestino < 0 || indiceDestino >= comprasDoDia.length) return;
+
+      const compraDestino = comprasDoDia[indiceDestino];
+      const ordemAtual = ordemCompra(compraAtual);
+      const ordemDestino = ordemCompra(compraDestino);
+
+      compraAtual.ordem = ordemDestino;
+      compraDestino.ordem = ordemAtual;
+
       persistSet("compras", JSON.stringify(compras));
       mostrar();
     }
@@ -1796,15 +1859,23 @@ ${totalParcelas > 1 ? `
 ` : ""}
 
 ${num === 1 ? `
-<button class="btn btn-sm btn-warning" onclick="editar('${c.id}')">
-<i class="bi bi-pencil"></i>
-</button>
-<button class="btn btn-sm btn-info" onclick="transferirCompra('${c.id}')">
-<i class="bi bi-arrow-left-right"></i>
-</button>
-<button class="btn btn-sm btn-danger" onclick="deletar('${c.id}')">
-<i class="bi bi-trash"></i>
-</button>
+<div class="acoes-compra">
+  <button class="btn btn-sm btn-outline-primary" title="Mover para cima" onclick="moverCompra('${c.id}', -1)">
+    <i class="bi bi-arrow-up"></i>
+  </button>
+  <button class="btn btn-sm btn-outline-primary" title="Mover para baixo" onclick="moverCompra('${c.id}', 1)">
+    <i class="bi bi-arrow-down"></i>
+  </button>
+  <button class="btn btn-sm btn-warning" title="Editar" onclick="editar('${c.id}')">
+    <i class="bi bi-pencil"></i>
+  </button>
+  <button class="btn btn-sm btn-info" title="Transferir" onclick="transferirCompra('${c.id}')">
+    <i class="bi bi-arrow-left-right"></i>
+  </button>
+  <button class="btn btn-sm btn-danger" title="Excluir" onclick="deletar('${c.id}')">
+    <i class="bi bi-trash"></i>
+  </button>
+</div>
 `: ""}
 </div>
 `;
@@ -1816,7 +1887,8 @@ ${num === 1 ? `
               valor: valorParcela,
               descricao: c.descricao,
               tipo: c.tipo,
-              cartao: c.cartao
+              cartao: c.cartao,
+              ordem: ordemCompra(c)
             });
 
             total += valorParcela;
@@ -1852,7 +1924,7 @@ ${num === 1 ? `
 
       });
 
-      lancamentos.sort((a, b) => b.data - a.data);
+      lancamentos.sort((a, b) => (b.data - a.data) || (a.ordem - b.ordem));
       atualizarBotoesFiltroCartao();
 
       let dataAtualGrupo = "";
