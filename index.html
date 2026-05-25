@@ -185,6 +185,25 @@
       align-items: center;
     }
 
+    .btn-toggle-valores {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+    }
+
+    .btn-atualizar-pagina {
+      padding: 8px 14px;
+      font-size: 14px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .section-toggle {
       width: 100%;
       border: none;
@@ -528,6 +547,9 @@
     </div>
 
     <div class="app-config">
+      <button type="button" id="btnToggleValores" class="btn btn-sm btn-outline-light btn-toggle-valores" title="Ocultar valores" onclick="alternarValoresOcultos()">
+        <i id="iconeToggleValores" class="bi bi-eye"></i>
+      </button>
       <button type="button" id="btnLogout" class="btn btn-sm btn-outline-light d-none" title="Sair da conta">Sair</button>
     </div>
 
@@ -731,9 +753,11 @@
   </div>
 
   <div class="container mt-4 mb-4">
-    <button id="btnAtualizarPagina" class="btn btn-outline-primary w-100 rounded-pill py-3" onclick="window.location.reload();">
-      <i class="bi bi-arrow-clockwise"></i> Atualizar página
-    </button>
+    <div class="d-flex justify-content-end">
+      <button id="btnAtualizarPagina" class="btn btn-outline-secondary btn-atualizar-pagina" onclick="window.location.reload();">
+        <i class="bi bi-arrow-clockwise"></i> Atualizar
+      </button>
+    </div>
   </div>
 
   <script>
@@ -1551,6 +1575,35 @@
     let filtroTipoAtual = "";
     let filtroCartaoAtual = "";
     let buscaLancamentoAtual = "";
+    let valoresOcultos = localStorage.getItem("valoresOcultos") === "true";
+    let totaisVisiveisAtuais = {
+      total: "0,00",
+      itau: "0,00",
+      carrefour: "0,00"
+    };
+
+    function textoValorOculto(valor) {
+      return valor.replace(/\d/g, "•");
+    }
+
+    function aplicarVisibilidadeValores() {
+      const icone = document.getElementById("iconeToggleValores");
+
+      total.innerText = valoresOcultos ? textoValorOculto(totaisVisiveisAtuais.total) : totaisVisiveisAtuais.total;
+      totalItau.innerText = valoresOcultos ? textoValorOculto(totaisVisiveisAtuais.itau) : totaisVisiveisAtuais.itau;
+      totalCarrefour.innerText = valoresOcultos ? textoValorOculto(totaisVisiveisAtuais.carrefour) : totaisVisiveisAtuais.carrefour;
+
+      if (icone) {
+        icone.className = valoresOcultos ? "bi bi-eye-slash" : "bi bi-eye";
+        btnToggleValores.title = valoresOcultos ? "Mostrar valores" : "Ocultar valores";
+      }
+    }
+
+    function alternarValoresOcultos() {
+      valoresOcultos = !valoresOcultos;
+      localStorage.setItem("valoresOcultos", String(valoresOcultos));
+      aplicarVisibilidadeValores();
+    }
 
     // FORMATAR
     function formatarValor(c) {
@@ -2158,9 +2211,12 @@ ${num === 1 ? `
 
       });
 
-      totalSpan.innerText = total.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
-      totalItau.innerText = totalPorCartaoMes.Itau.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
-      totalCarrefour.innerText = totalPorCartaoMes.Carrefour.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+      totaisVisiveisAtuais = {
+        total: total.toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
+        itau: totalPorCartaoMes.Itau.toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
+        carrefour: totalPorCartaoMes.Carrefour.toLocaleString("pt-BR", { minimumFractionDigits: 2 })
+      };
+      aplicarVisibilidadeValores();
 
       resumoCategoria.innerHTML = "";
       resumoOrcamentos.innerHTML = "";
