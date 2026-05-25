@@ -812,6 +812,9 @@
         if (data.fechamentosCartao && typeof data.fechamentosCartao === "object") {
           localStorage.setItem("fechamentosCartao", JSON.stringify(data.fechamentosCartao));
         }
+        if (data.regrasCategoria && typeof data.regrasCategoria === "object") {
+          localStorage.setItem("regrasCategoria", JSON.stringify(data.regrasCategoria));
+        }
       } catch (e) {
         console.warn("Sincronização (pull):", e);
       }
@@ -830,6 +833,7 @@
       const body = {
         compras: JSON.parse(localStorage.getItem("compras") || "[]"),
         orcamentos: JSON.parse(localStorage.getItem("orcamentos") || "[]"),
+        regrasCategoria: JSON.parse(localStorage.getItem("regrasCategoria") || "{}"),
         fechamentosCartao: JSON.parse(localStorage.getItem("fechamentosCartao") || "null") || { global: {}, mensal: {} }
       };
       try {
@@ -850,7 +854,7 @@
 
     function persistSet(key, jsonString) {
       localStorage.setItem(key, jsonString);
-      if (key === "compras" || key === "orcamentos" || key === "fechamentosCartao") schedulePushToCloud();
+      if (key === "compras" || key === "orcamentos" || key === "fechamentosCartao" || key === "regrasCategoria") schedulePushToCloud();
     }
 
     // ========== AUTENTICAÇÃO BASIC AUTH ==========
@@ -1523,8 +1527,38 @@
         ?.toString()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\p{L}\p{N}\s]/gu, " ")
+        .replace(/\s+/g, " ")
         .trim()
         .toLowerCase() || "";
+    }
+
+    function obterRegrasCategoria() {
+      return JSON.parse(localStorage.getItem("regrasCategoria") || "{}");
+    }
+
+    function salvarRegraCategoria(descricao, tipoCompra) {
+      const chave = normalizarTexto(descricao);
+      const tipoRegra = tipoCompra?.toString().trim();
+
+      if (!chave || !tipoRegra || normalizarTexto(tipoRegra) === "outros") return;
+
+      const regras = obterRegrasCategoria();
+      regras[chave] = tipoRegra;
+      persistSet("regrasCategoria", JSON.stringify(regras));
+    }
+
+    function detectarTipoPorRegras(descricao) {
+      const descricaoNormalizada = normalizarTexto(descricao);
+      const regras = Object.entries(obterRegrasCategoria())
+        .map(([chave, tipoRegra]) => [normalizarTexto(chave), tipoRegra])
+        .filter(([chave, tipoRegra]) => chave && tipoRegra && normalizarTexto(tipoRegra) !== "outros")
+        .sort((a, b) => b[0].length - a[0].length);
+      const regra = regras.find(([chave]) =>
+        descricaoNormalizada === chave || descricaoNormalizada.includes(chave) || chave.includes(descricaoNormalizada)
+      );
+
+      return regra?.[1] || "";
     }
 
     function getIconeCartao(cartao) {
@@ -1662,6 +1696,7 @@
         compras.push(obj);
       }
 
+      salvarRegraCategoria(obj.descricao, obj.tipo);
       persistSet("compras", JSON.stringify(compras));
 
       cancelarEdicao();
@@ -1752,6 +1787,12 @@
 
     function sugerirTipoPelaDescricao() {
       const texto = normalizarTexto(descricao.value);
+      const tipoAprendido = detectarTipoPorRegras(descricao.value);
+
+      if (tipoAprendido) {
+        tipo.value = tipoAprendido;
+        return;
+      }
 
       const regras = [
         { palavras: ["jau", "jaú"], tipo: "Supermercado" },

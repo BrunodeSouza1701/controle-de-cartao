@@ -21,6 +21,7 @@ const JWKS = jose.createRemoteJWKSet(
 type AppState = {
   compras: unknown[];
   orcamentos: unknown[];
+  regrasCategoria: Record<string, string>;
   fechamentosCartao: {
     global?: Record<string, { inicio: number }>;
     mensal?: Record<string, Record<string, { inicio: number }>>;
@@ -30,6 +31,7 @@ type AppState = {
 const emptyState = (): AppState => ({
   compras: [],
   orcamentos: [],
+  regrasCategoria: {},
   fechamentosCartao: { global: {}, mensal: {} },
 });
 
@@ -163,7 +165,24 @@ function parseItauNotification(texto: string): {
 }
 
 function normalizeKey(texto: string): string {
-  return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function inferCategory(descricao: string, regrasCategoria?: Record<string, string>): string {
+  const descricaoKey = normalizeKey(descricao);
+  const regras = Object.entries(regrasCategoria || {})
+    .map(([key, tipo]) => [normalizeKey(key), tipo] as const)
+    .filter(([key, tipo]) => key && tipo && normalizeKey(tipo) !== "outros")
+    .sort((a, b) => b[0].length - a[0].length);
+
+  const regra = regras.find(([key]) => descricaoKey === key || descricaoKey.includes(key) || key.includes(descricaoKey));
+  return regra?.[1] || "Outros";
 }
 
 function parseCarrefourSms(texto: string): {
@@ -258,6 +277,10 @@ function parseFirestorePayload(doc: { fields?: { [k: string]: { stringValue?: st
     return {
       compras: Array.isArray(parsed.compras) ? parsed.compras : [],
       orcamentos: Array.isArray(parsed.orcamentos) ? parsed.orcamentos : [],
+      regrasCategoria:
+        parsed.regrasCategoria && typeof parsed.regrasCategoria === "object"
+          ? (parsed.regrasCategoria as Record<string, string>)
+          : {},
       fechamentosCartao:
         parsed.fechamentosCartao && typeof parsed.fechamentosCartao === "object"
           ? parsed.fechamentosCartao
@@ -435,6 +458,10 @@ export default {
         const state: AppState = {
           compras: Array.isArray(body.compras) ? body.compras : [],
           orcamentos: Array.isArray(body.orcamentos) ? body.orcamentos : [],
+          regrasCategoria:
+            body.regrasCategoria && typeof body.regrasCategoria === "object"
+              ? (body.regrasCategoria as Record<string, string>)
+              : {},
           fechamentosCartao:
             body.fechamentosCartao && typeof body.fechamentosCartao === "object"
               ? (body.fechamentosCartao as AppState["fechamentosCartao"])
@@ -533,6 +560,7 @@ export default {
         }
 
         const state = await readState(env);
+        compraExtraida.tipo = inferCategory(compraExtraida.descricao, state.regrasCategoria);
         const novaCompra = {
           id: Date.now(),
           data: compraExtraida.data,
