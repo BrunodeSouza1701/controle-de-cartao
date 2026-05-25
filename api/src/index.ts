@@ -112,6 +112,23 @@ function parseMoneyBR(valor: string): number {
   return Number(valor.replace(/\./g, "").replace(",", "."));
 }
 
+function formatDescription(texto: string): string {
+  const smallWords = new Set(["a", "as", "ao", "aos", "da", "das", "de", "do", "dos", "e", "em", "na", "nas", "no", "nos", "o", "os"]);
+  const acronyms = new Set(["BR", "SA", "S/A", "LTDA", "MEI", "ME", "EPP"]);
+  const normalized = texto.replace(/\s+/g, " ").trim().toLocaleLowerCase("pt-BR");
+
+  return normalized
+    .split(" ")
+    .map((word, index) => {
+      const clean = word.replace(/[.,;:]+$/g, "").toLocaleUpperCase("pt-BR");
+      if (index > 0 && smallWords.has(word)) return word;
+      if (acronyms.has(clean)) return clean;
+
+      return word.replace(/^\p{L}/u, letter => letter.toLocaleUpperCase("pt-BR"));
+    })
+    .join(" ");
+}
+
 function parseItauNotification(texto: string): {
   data: string;
   valor: number;
@@ -137,7 +154,7 @@ function parseItauNotification(texto: string): {
   return {
     data: dataMatch ? `${dataMatch[3]}-${dataMatch[2]}-${dataMatch[1]}` : "",
     valor: valorMatch ? parseMoneyBR(valorMatch[1]) : 0,
-    descricao: descMatch ? descMatch[1].trim() : "",
+    descricao: descMatch ? formatDescription(descMatch[1]) : "",
     tipo: "Outros",
     cartao: "Itaú",
     tipoCompra: "avista",
@@ -175,7 +192,7 @@ function parseCarrefourSms(texto: string): {
   return {
     data: dataMatch ? `${anoAtual}-${dataMatch[2]}-${dataMatch[1]}` : "",
     valor: valorMatch ? parseMoneyBR(valorMatch[1]) : 0,
-    descricao: descMatch ? descMatch[1].trim() : "",
+    descricao: descMatch ? formatDescription(descMatch[1]) : "",
     tipo: "Outros",
     cartao: "Carrefour",
     tipoCompra: "avista",
