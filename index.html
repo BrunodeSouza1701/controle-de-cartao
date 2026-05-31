@@ -16,7 +16,7 @@
   <style>
     body {
       background: #f5f6fa;
-      padding: 80px 10px 80px;
+      padding: 80px 10px 96px;
       font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
@@ -70,21 +70,6 @@
       border-bottom-left-radius: 15px;
       border-bottom-right-radius: 15px;
 
-    }
-
-    /* 🔥 NOVO - BOTÃO FLUTUANTE */
-    .fab {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #0d6efd;
-      color: white;
-      border: none;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      font-size: 28px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
     button {
@@ -161,6 +146,76 @@
       white-space: nowrap;
     }
 
+    .home-total-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .home-total-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 118px;
+      border-radius: 16px;
+      padding: 16px;
+      color: #fff;
+      background: linear-gradient(135deg, #0b5ed7, #0dcaf0);
+      box-shadow: 0 12px 28px rgba(13, 110, 253, 0.18);
+    }
+
+    .home-total-card::after {
+      content: "";
+      position: absolute;
+      inset: -80% auto -80% -40%;
+      width: 45%;
+      transform: rotate(22deg);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38), transparent);
+      animation: brilhoCartao 3.8s ease-in-out infinite;
+    }
+
+    .home-total-card.itau {
+      background: linear-gradient(135deg, #07205f, #ff7a00);
+    }
+
+    .home-total-card.carrefour {
+      background: linear-gradient(135deg, #0057a8, #e30613);
+    }
+
+    .home-total-card small {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      opacity: 0.9;
+      font-weight: 700;
+    }
+
+    .home-total-card img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+      filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.28));
+    }
+
+    .home-total-card strong {
+      display: block;
+      margin-top: 18px;
+      font-size: 24px;
+      font-weight: 900;
+      line-height: 1;
+      position: relative;
+      z-index: 1;
+    }
+
+    @keyframes brilhoCartao {
+      0%, 42% {
+        transform: translateX(0) rotate(22deg);
+      }
+      72%, 100% {
+        transform: translateX(420%) rotate(22deg);
+      }
+    }
+
     .app-mes-atual {
       min-width: 140px;
       line-height: 1.1;
@@ -202,6 +257,52 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
+    }
+
+    .menu-card.d-none {
+      display: none !important;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      z-index: 1200;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+      padding: 8px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+      backdrop-filter: blur(10px);
+    }
+
+    .bottom-nav button {
+      border: 0;
+      background: transparent;
+      color: #6c757d;
+      min-height: 56px;
+      padding: 7px 3px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .bottom-nav i {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .bottom-nav button.ativo {
+      color: #0d6efd;
+      background: #e7f1ff;
     }
 
     .section-toggle {
@@ -450,7 +551,7 @@
 
     @media (max-width: 767px) {
       body {
-        padding-top: 138px;
+        padding-top: 86px;
       }
 
       .app-header {
@@ -462,25 +563,36 @@
         width: calc(50% - 4px);
       }
 
-      .app-total {
-        min-width: 0;
-        width: calc(50% - 4px);
-      }
-
-      .app-totais-cartoes {
-        order: 3;
-        width: 100%;
-      }
-
-      .app-total-card {
-        flex: 1;
-        min-width: 0;
-      }
-
       .app-config {
-        order: 4;
-        width: 100%;
+        width: calc(50% - 4px);
         justify-content: flex-end;
+      }
+
+      .home-total-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .home-total-card {
+        min-height: 96px;
+      }
+
+      .home-total-card strong {
+        margin-top: 12px;
+        font-size: 22px;
+      }
+    }
+
+    @media (min-width: 768px) {
+      body.app-view-compras .col-md-5,
+      body.app-view-controle .col-md-5,
+      body.app-view-fechamento .col-md-5 {
+        display: none;
+      }
+
+      body.app-view-compras .col-md-7,
+      body.app-view-controle .col-md-7,
+      body.app-view-fechamento .col-md-7 {
+        width: 100%;
       }
     }
   </style>
@@ -530,22 +642,6 @@
       <strong id="mesAtual"></strong>
     </div>
 
-    <div class="app-total">
-      <small>Total do Mês</small>
-      <strong>R$ <span id="total">0</span></strong>
-    </div>
-
-    <div class="app-totais-cartoes" aria-label="Totais por cartão">
-      <div class="app-total-card">
-        <small><img src="img/itau.png" alt=""> Itaú</small>
-        <strong>R$ <span id="totalItau">0</span></strong>
-      </div>
-      <div class="app-total-card">
-        <small><img src="img/carrefour.png" alt=""> Carrefour</small>
-        <strong>R$ <span id="totalCarrefour">0</span></strong>
-      </div>
-    </div>
-
     <div class="app-config">
       <button type="button" id="btnToggleValores" class="btn btn-sm btn-outline-light btn-toggle-valores" title="Ocultar valores" onclick="alternarValoresOcultos()">
         <i id="iconeToggleValores" class="bi bi-eye"></i>
@@ -562,7 +658,7 @@
       <!-- FORM -->
       <div class="col-12 col-md-5">
         <div class="bloco-esquerda">
-          <div class="card p-3 shadow-sm border-0 historico-meses-card">
+          <div class="card p-3 shadow-sm border-0 historico-meses-card menu-card" data-menu-view="inicio">
             <h6 class="mb-2"><i class="bi bi-calendar3"></i> Meses</h6>
             <div class="meses-config">
               <select id="mesFiltro" class="form-select form-select-sm"></select>
@@ -571,7 +667,7 @@
             <div id="historicoMeses"></div>
           </div>
 
-          <div class="card p-3 shadow-sm border-0 form-compras-card">
+          <div class="card p-3 shadow-sm border-0 form-compras-card menu-card" data-menu-view="lancamentos">
 
             <button type="button" class="section-toggle" onclick="toggleSecao('secaoAdicionar', 'iconeAdicionar')">
               <h6><i class="bi bi-plus-circle"></i> Adicionar Compras</h6>
@@ -637,7 +733,25 @@
       <!-- DIREITA -->
       <div class="col-12 col-md-7">
 
-        <div class="card p-3 shadow-sm border-0 mb-3">
+        <div class="card p-3 shadow-sm border-0 mb-3 menu-card" data-menu-view="inicio">
+          <h6 class="mb-3"><i class="bi bi-credit-card-2-front"></i> Resumo dos Cartões</h6>
+          <div class="home-total-grid">
+            <div class="home-total-card">
+              <small><i class="bi bi-wallet2"></i> Total do Mês</small>
+              <strong>R$ <span id="total">0</span></strong>
+            </div>
+            <div class="home-total-card itau">
+              <small><img src="img/itau.png" alt=""> Itaú</small>
+              <strong>R$ <span id="totalItau">0</span></strong>
+            </div>
+            <div class="home-total-card carrefour">
+              <small><img src="img/carrefour.png" alt=""> Carrefour</small>
+              <strong>R$ <span id="totalCarrefour">0</span></strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-3 shadow-sm border-0 mb-3 menu-card" data-menu-view="lancamentos">
           <button type="button" class="section-toggle" onclick="toggleSecao('secaoLancamentos', 'iconeLancamentos')">
             <h6><i class="bi bi-list-ul"></i> Lançamentos</h6>
             <i id="iconeLancamentos" class="bi bi-chevron-up"></i>
@@ -667,7 +781,7 @@
           </div>
         </div>
 
-        <div class="card p-3 shadow-sm border-0 mb-3">
+        <div class="card p-3 shadow-sm border-0 mb-3 menu-card" data-menu-view="compras">
           <button type="button" class="section-toggle" onclick="toggleSecao('secaoCartoes', 'iconeCartoes')">
             <h6><i class="bi bi-credit-card"></i> Parcelados</h6>
             <i id="iconeCartoes" class="bi bi-chevron-up"></i>
@@ -677,7 +791,7 @@
           </div>
         </div>
 
-        <div class="card p-3 shadow-sm border-0 mb-3">
+        <div class="card p-3 shadow-sm border-0 mb-3 menu-card" data-menu-view="compras">
           <button type="button" class="section-toggle" onclick="toggleSecao('secaoAVista', 'iconeAVista')">
             <h6><i class="bi bi-cash-coin"></i> Compras à Vista</h6>
             <i id="iconeAVista" class="bi bi-chevron-up"></i>
@@ -687,7 +801,7 @@
           </div>
         </div>
 
-        <div class="card p-3 shadow-sm border-0 mb-3">
+        <div class="card p-3 shadow-sm border-0 mb-3 menu-card" data-menu-view="controle">
           <button type="button" class="section-toggle" onclick="toggleSecao('secaoCategorias', 'iconeCategorias')">
             <h6><i class="bi bi-pie-chart"></i> Categorias</h6>
             <i id="iconeCategorias" class="bi bi-chevron-up"></i>
@@ -697,7 +811,7 @@
           </div>
         </div>
 
-        <div class="card p-3 shadow-sm border-0 mb-3">
+        <div class="card p-3 shadow-sm border-0 mb-3 menu-card" data-menu-view="controle">
           <button type="button" class="section-toggle" onclick="toggleSecao('secaoOrcamentos', 'iconeOrcamentos')">
             <h6><i class="bi bi-speedometer2"></i> Orçamentos</h6>
             <i id="iconeOrcamentos" class="bi bi-chevron-up"></i>
@@ -707,7 +821,7 @@
           </div>
         </div>
 
-        <div class="card p-3 shadow-sm border-0 mb-3">
+        <div class="card p-3 shadow-sm border-0 mb-3 menu-card" data-menu-view="controle">
           <button type="button" class="section-toggle" onclick="toggleSecao('secaoOrcamentoConfig', 'iconeOrcamentoConfig')">
             <h6><i class="bi bi-speedometer2"></i> Limitador de orçamento</h6>
             <i id="iconeOrcamentoConfig" class="bi bi-chevron-up"></i>
@@ -726,7 +840,7 @@
           </div>
         </div>
 
-        <div class="card p-3 shadow-sm border-0 mb-3">
+        <div class="card p-3 shadow-sm border-0 mb-3 menu-card" data-menu-view="fechamento">
           <button type="button" class="section-toggle" onclick="toggleSecao('secaoFechamento', 'iconeFechamento')">
             <h6><i class="bi bi-calendar2-week"></i> Fechamento do cartão</h6>
             <i id="iconeFechamento" class="bi bi-chevron-up"></i>
@@ -1639,6 +1753,29 @@
       aplicarVisibilidadeValores();
     }
 
+    function mostrarMenu(menu) {
+      const view = menu || "inicio";
+
+      document.body.classList.remove(
+        "app-view-inicio",
+        "app-view-lancamentos",
+        "app-view-compras",
+        "app-view-controle",
+        "app-view-fechamento"
+      );
+      document.body.classList.add(`app-view-${view}`);
+
+      document.querySelectorAll("[data-menu-view]").forEach(card => {
+        card.classList.toggle("d-none", card.dataset.menuView !== view);
+      });
+
+      document.querySelectorAll("[data-menu-target]").forEach(botao => {
+        botao.classList.toggle("ativo", botao.dataset.menuTarget === view);
+      });
+
+      localStorage.setItem("menuAtivo", view);
+    }
+
     // FORMATAR
     function formatarValor(c) {
       let v = c.value.replace(/\D/g, '');
@@ -2431,6 +2568,7 @@ ${num === 1 ? `
       anoFiltro.onchange = mostrar;
 
       restaurarSecoes();
+      mostrarMenu(localStorage.getItem("menuAtivo") || "inicio");
       mostrar();
     }
 
@@ -2444,9 +2582,28 @@ ${num === 1 ? `
 
   </script>
 
-  <button class="fab" onclick="irParaAdicionar()">
-    +
-  </button>
+  <nav class="bottom-nav" aria-label="Menu principal">
+    <button type="button" data-menu-target="inicio" onclick="mostrarMenu('inicio')">
+      <i class="bi bi-credit-card-2-front"></i>
+      <span>Início</span>
+    </button>
+    <button type="button" data-menu-target="lancamentos" onclick="mostrarMenu('lancamentos')">
+      <i class="bi bi-list-ul"></i>
+      <span>Lançamentos</span>
+    </button>
+    <button type="button" data-menu-target="compras" onclick="mostrarMenu('compras')">
+      <i class="bi bi-bag-check"></i>
+      <span>Compras</span>
+    </button>
+    <button type="button" data-menu-target="controle" onclick="mostrarMenu('controle')">
+      <i class="bi bi-pie-chart"></i>
+      <span>Controle</span>
+    </button>
+    <button type="button" data-menu-target="fechamento" onclick="mostrarMenu('fechamento')">
+      <i class="bi bi-calendar2-week"></i>
+      <span>Fechamento</span>
+    </button>
+  </nav>
 
   <div id="modalApp" class="modal-app d-none">
     <div class="modal-app-caixa">
