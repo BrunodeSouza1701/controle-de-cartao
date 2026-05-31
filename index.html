@@ -186,17 +186,50 @@
     }
 
     .home-total-card.itau {
-      color: #172033;
-      background: linear-gradient(135deg, #ffffff, #fff4e8);
+      padding: 0;
+      color: #fff;
+      background: #111827;
       border: 1px solid rgba(255, 122, 0, 0.22);
       box-shadow: 0 12px 28px rgba(255, 122, 0, 0.14);
     }
 
     .home-total-card.carrefour {
-      color: #172033;
-      background: linear-gradient(135deg, #ffffff, #eff6ff);
+      padding: 0;
+      color: #fff;
+      background: #111827;
       border: 1px solid rgba(0, 87, 168, 0.2);
       box-shadow: 0 12px 28px rgba(0, 87, 168, 0.12);
+    }
+
+    .home-total-card.itau::before,
+    .home-total-card.carrefour::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.68));
+      pointer-events: none;
+    }
+
+    .home-card-bg {
+      position: absolute !important;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      background: transparent;
+      filter: none !important;
+      z-index: 0 !important;
+    }
+
+    .home-card-content {
+      position: relative;
+      z-index: 2;
+      min-height: 118px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
     }
 
     .home-total-card small {
@@ -207,12 +240,12 @@
       font-weight: 700;
     }
 
-    .home-total-card img {
-      width: 44px;
-      height: 32px;
+    .home-total-card small img {
+      width: 58px;
+      height: 36px;
       object-fit: contain;
       background: transparent;
-      mix-blend-mode: multiply;
+      mix-blend-mode: normal;
       filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.24));
       position: relative;
       z-index: 1;
@@ -782,12 +815,18 @@
               <strong>R$ <span id="total">0</span></strong>
             </div>
             <div class="home-total-card itau">
-              <small><img src="Logos/Itau.png" alt=""> Itaú</small>
-              <strong>R$ <span id="totalItau">0</span></strong>
+              <img class="home-card-bg" src="Logos/Itau-clean.png" alt="">
+              <div class="home-card-content">
+                <small>Itaú</small>
+                <strong>R$ <span id="totalItau">0</span></strong>
+              </div>
             </div>
             <div class="home-total-card carrefour">
-              <small><img src="Logos/Carrefour.png" alt=""> Carrefour</small>
-              <strong>R$ <span id="totalCarrefour">0</span></strong>
+              <img class="home-card-bg" src="Logos/Carrefour.png" alt="">
+              <div class="home-card-content">
+                <small>Carrefour</small>
+                <strong>R$ <span id="totalCarrefour">0</span></strong>
+              </div>
             </div>
           </div>
           <div class="inicio-actions">
@@ -1719,7 +1758,7 @@
       const nomeCartao = normalizarTexto(cartao);
 
       if (nomeCartao === "itau") {
-        return "<img src='Logos/Itau.png' width='24' class='me-2'>";
+        return "<img src='Logos/Itau-clean.png' width='24' class='me-2'>";
       }
       if (nomeCartao === "carrefour") {
         return "<img src='Logos/Carrefour.png' width='24' class='me-2'>";
