@@ -152,6 +152,18 @@
       gap: 10px;
     }
 
+    .resumo-cartoes-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .resumo-cartoes-header .btn-atualizar-pagina {
+      flex-shrink: 0;
+    }
+
     .home-total-card {
       position: relative;
       overflow: hidden;
@@ -174,11 +186,17 @@
     }
 
     .home-total-card.itau {
-      background: linear-gradient(135deg, #07205f, #ff7a00);
+      color: #172033;
+      background: linear-gradient(135deg, #ffffff, #fff4e8);
+      border: 1px solid rgba(255, 122, 0, 0.22);
+      box-shadow: 0 12px 28px rgba(255, 122, 0, 0.14);
     }
 
     .home-total-card.carrefour {
-      background: linear-gradient(135deg, #0057a8, #e30613);
+      color: #172033;
+      background: linear-gradient(135deg, #ffffff, #eff6ff);
+      border: 1px solid rgba(0, 87, 168, 0.2);
+      box-shadow: 0 12px 28px rgba(0, 87, 168, 0.12);
     }
 
     .home-total-card small {
@@ -190,11 +208,14 @@
     }
 
     .home-total-card img {
-      width: 28px;
-      height: 28px;
+      width: 44px;
+      height: 32px;
       object-fit: contain;
+      background: transparent;
       mix-blend-mode: multiply;
-      filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.28));
+      filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.24));
+      position: relative;
+      z-index: 1;
     }
 
     .home-total-card strong {
@@ -205,6 +226,18 @@
       line-height: 1;
       position: relative;
       z-index: 1;
+    }
+
+    .inicio-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+
+    .btn-sair-inicio {
+      border-radius: 12px;
+      padding: 9px 14px;
+      font-weight: 700;
     }
 
     @keyframes brilhoCartao {
@@ -454,8 +487,12 @@
 
     .historico-meses-card {
       width: 100%;
-      background: #f8f9fa;
-      border: 1px solid #dee2e6 !important;
+      position: sticky;
+      top: 88px;
+      z-index: 20;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      border: 1px solid #e3ecfb !important;
+      box-shadow: 0 14px 32px rgba(13, 110, 253, 0.1);
     }
 
     .meses-config {
@@ -466,9 +503,10 @@
     }
 
     .historico-meses-card h6 {
-      color: #212529;
+      color: #1f2937;
       font-weight: 800;
       font-size: 18px;
+      margin-bottom: 12px;
     }
 
     .historico-meses {
@@ -482,7 +520,7 @@
       width: 36px;
       height: 54px;
       border: 0;
-      background: transparent;
+      background: #eef5ff;
       color: #0d6efd;
       padding: 0;
       display: flex;
@@ -494,7 +532,7 @@
     }
 
     .historico-navegacao:hover {
-      background: #e7f1ff;
+      background: #dcecff;
     }
 
     .historico-mes {
@@ -517,6 +555,7 @@
       color: #0d6efd;
       font-weight: 800;
       border-bottom-color: #0d6efd;
+      background: linear-gradient(180deg, rgba(13, 110, 253, 0.08), transparent);
     }
 
     .historico-valor {
@@ -580,19 +619,17 @@
         margin-top: 12px;
         font-size: 22px;
       }
-    }
 
-    @media (min-width: 768px) {
-      body.app-view-compras .col-md-5,
-      body.app-view-controle .col-md-5,
-      body.app-view-fechamento .col-md-5 {
-        display: none;
+      .resumo-cartoes-header {
+        align-items: flex-start;
       }
 
-      body.app-view-compras .col-md-7,
-      body.app-view-controle .col-md-7,
-      body.app-view-fechamento .col-md-7 {
-        width: 100%;
+      .resumo-cartoes-header h6 {
+        line-height: 1.25;
+      }
+
+      .historico-meses-card {
+        top: 92px;
       }
     }
   </style>
@@ -637,7 +674,7 @@
   <div class="app-header">
 
     <div class="app-mes-atual">
-      <h6 class="m-0 fw-bold">Controle</h6>
+      <h6 class="m-0 fw-bold">Controle de Cartão</h6>
       <small>Mês Atual</small>
       <strong id="mesAtual"></strong>
     </div>
@@ -646,7 +683,6 @@
       <button type="button" id="btnToggleValores" class="btn btn-sm btn-outline-light btn-toggle-valores" title="Ocultar valores" onclick="alternarValoresOcultos()">
         <i id="iconeToggleValores" class="bi bi-eye"></i>
       </button>
-      <button type="button" id="btnLogout" class="btn btn-sm btn-outline-light d-none" title="Sair da conta">Sair</button>
     </div>
 
   </div>
@@ -658,7 +694,7 @@
       <!-- FORM -->
       <div class="col-12 col-md-5">
         <div class="bloco-esquerda">
-          <div class="card p-3 shadow-sm border-0 historico-meses-card menu-card" data-menu-view="inicio">
+          <div class="card p-3 shadow-sm border-0 historico-meses-card menu-card">
             <h6 class="mb-2"><i class="bi bi-calendar3"></i> Meses</h6>
             <div class="meses-config">
               <select id="mesFiltro" class="form-select form-select-sm"></select>
@@ -734,20 +770,30 @@
       <div class="col-12 col-md-7">
 
         <div class="card p-3 shadow-sm border-0 mb-3 menu-card" data-menu-view="inicio">
-          <h6 class="mb-3"><i class="bi bi-credit-card-2-front"></i> Resumo dos Cartões</h6>
+          <div class="resumo-cartoes-header">
+            <h6 class="m-0"><i class="bi bi-credit-card-2-front"></i> Resumo dos Cartões</h6>
+            <button id="btnAtualizarPagina" class="btn btn-outline-secondary btn-atualizar-pagina" onclick="window.location.reload();">
+              <i class="bi bi-arrow-clockwise"></i> Atualizar
+            </button>
+          </div>
           <div class="home-total-grid">
             <div class="home-total-card">
               <small><i class="bi bi-wallet2"></i> Total do Mês</small>
               <strong>R$ <span id="total">0</span></strong>
             </div>
             <div class="home-total-card itau">
-              <small><img src="img/itau.png" alt=""> Itaú</small>
+              <small><img src="Logos/Itau.png" alt=""> Itaú</small>
               <strong>R$ <span id="totalItau">0</span></strong>
             </div>
             <div class="home-total-card carrefour">
-              <small><img src="img/carrefour.png" alt=""> Carrefour</small>
+              <small><img src="Logos/Carrefour.png" alt=""> Carrefour</small>
               <strong>R$ <span id="totalCarrefour">0</span></strong>
             </div>
+          </div>
+          <div class="inicio-actions">
+            <button type="button" id="btnLogout" class="btn btn-outline-danger btn-sair-inicio d-none" title="Sair da conta">
+              <i class="bi bi-box-arrow-right"></i> Sair
+            </button>
           </div>
         </div>
 
@@ -863,14 +909,6 @@
         </div>
       </div>
 
-    </div>
-  </div>
-
-  <div class="container mt-4 mb-4">
-    <div class="d-flex justify-content-end">
-      <button id="btnAtualizarPagina" class="btn btn-outline-secondary btn-atualizar-pagina" onclick="window.location.reload();">
-        <i class="bi bi-arrow-clockwise"></i> Atualizar
-      </button>
     </div>
   </div>
 
@@ -1148,6 +1186,8 @@
     }
 
     function irParaAdicionar() {
+      mostrarMenu("lancamentos");
+
       const secao = document.getElementById("secaoAdicionar");
       const icone = document.getElementById("iconeAdicionar");
 
@@ -1679,10 +1719,10 @@
       const nomeCartao = normalizarTexto(cartao);
 
       if (nomeCartao === "itau") {
-        return "<img src='img/itau.png' width='24' class='me-2'>";
+        return "<img src='Logos/Itau.png' width='24' class='me-2'>";
       }
       if (nomeCartao === "carrefour") {
-        return "<img src='img/carrefour.png' width='24' class='me-2'>";
+        return "<img src='Logos/Carrefour.png' width='24' class='me-2'>";
       }
       return "💳";
     }
@@ -1873,6 +1913,11 @@
 
       let c = compras[i];
 
+      cartao.value = nomeCartaoPadronizado(c.cartao);
+      if (c.tipo && ![...tipo.options].some(opcao => opcao.value === c.tipo)) {
+        tipo.add(new Option(c.tipo, c.tipo));
+      }
+      tipo.value = c.tipo || "Outros";
       descricao.value = c.descricao;
       valor.value = c.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
       parcelas.value = c.parcelas;
