@@ -186,50 +186,46 @@
     }
 
     .home-total-card.itau {
-      padding: 0;
-      color: #fff;
-      background: #111827;
+      padding: 10px;
+      color: #172033;
+      background: #ffffff;
       border: 1px solid rgba(255, 122, 0, 0.22);
       box-shadow: 0 12px 28px rgba(255, 122, 0, 0.14);
     }
 
     .home-total-card.carrefour {
-      padding: 0;
-      color: #fff;
-      background: #111827;
+      padding: 10px;
+      color: #172033;
+      background: #ffffff;
       border: 1px solid rgba(0, 87, 168, 0.2);
       box-shadow: 0 12px 28px rgba(0, 87, 168, 0.12);
     }
 
     .home-total-card.itau::before,
     .home-total-card.carrefour::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      background: linear-gradient(180deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.68));
-      pointer-events: none;
+      display: none;
     }
 
     .home-card-bg {
-      position: absolute !important;
-      inset: 0;
+      position: relative !important;
+      display: block;
       width: 100% !important;
-      height: 100% !important;
-      object-fit: cover !important;
+      height: 94px !important;
+      object-fit: contain !important;
       background: transparent;
-      filter: none !important;
-      z-index: 0 !important;
+      border-radius: 12px;
+      filter: drop-shadow(0 8px 14px rgba(15, 23, 42, 0.16)) !important;
+      z-index: 1 !important;
     }
 
     .home-card-content {
       position: relative;
       z-index: 2;
-      min-height: 118px;
-      padding: 14px 16px;
+      min-height: auto;
+      padding: 10px 2px 0;
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
+      justify-content: flex-start;
     }
 
     .home-total-card small {
@@ -259,6 +255,11 @@
       line-height: 1;
       position: relative;
       z-index: 1;
+    }
+
+    .home-card-content strong {
+      margin-top: 4px;
+      color: #172033;
     }
 
     .inicio-actions {
@@ -815,7 +816,7 @@
               <strong>R$ <span id="total">0</span></strong>
             </div>
             <div class="home-total-card itau">
-              <img class="home-card-bg" src="Logos/Itau-clean.png" alt="">
+              <img class="home-card-bg" src="Logos/Itau-card.png" alt="">
               <div class="home-card-content">
                 <small>Itaú</small>
                 <strong>R$ <span id="totalItau">0</span></strong>
