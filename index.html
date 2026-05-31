@@ -203,7 +203,18 @@
 
     .home-total-card.itau::before,
     .home-total-card.carrefour::before {
-      display: none;
+      content: "";
+      position: absolute;
+      top: 10px;
+      bottom: auto;
+      left: -45%;
+      width: 38%;
+      height: 94px;
+      z-index: 3;
+      transform: skewX(-22deg);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+      animation: brilhoCartaoImagem 3.8s ease-in-out infinite;
+      pointer-events: none;
     }
 
     .home-card-bg {
@@ -280,6 +291,15 @@
       }
       72%, 100% {
         transform: translateX(420%) rotate(22deg);
+      }
+    }
+
+    @keyframes brilhoCartaoImagem {
+      0%, 42% {
+        transform: translateX(0) skewX(-22deg);
+      }
+      72%, 100% {
+        transform: translateX(420%) skewX(-22deg);
       }
     }
 
