@@ -16,8 +16,12 @@
   <style>
     body {
       background: #f5f6fa;
-      padding: 80px 10px 96px;
+      padding: 226px 10px 96px;
       font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body.meses-recolhido {
+      padding-top: 92px;
     }
 
     .card {
@@ -62,14 +66,20 @@
       color: white;
       padding: 12px 15px;
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: space-between;
-      align-items: center;
+      flex-direction: column;
+      gap: 10px;
       z-index: 999;
       border-bottom-left-radius: 15px;
       border-bottom-right-radius: 15px;
 
+    }
+
+    .app-header-main {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
     }
 
     button {
@@ -537,16 +547,18 @@
     .form-compras-card {
       flex: 1;
       min-width: 0;
+      width: 100%;
+      margin-bottom: 14px;
     }
 
     .historico-meses-card {
       width: 100%;
-      position: sticky;
-      top: 88px;
-      z-index: 20;
-      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-      border: 1px solid #e3ecfb !important;
-      box-shadow: 0 14px 32px rgba(13, 110, 253, 0.1);
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.22) !important;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      color: white;
+      overflow: hidden;
     }
 
     .meses-config {
@@ -557,10 +569,45 @@
     }
 
     .historico-meses-card h6 {
-      color: #1f2937;
+      color: white;
       font-weight: 800;
       font-size: 18px;
-      margin-bottom: 12px;
+      margin: 0;
+    }
+
+    .historico-meses-topo {
+      width: 100%;
+    }
+
+    .historico-meses-header {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: white;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-align: left;
+    }
+
+    .historico-meses-conteudo {
+      margin-top: 12px;
+      transition: max-height 0.2s ease, opacity 0.2s ease, margin-top 0.2s ease;
+      max-height: 130px;
+      opacity: 1;
+    }
+
+    .historico-meses-conteudo.oculto {
+      max-height: 0;
+      opacity: 0;
+      margin-top: 0;
+      overflow: hidden;
+    }
+
+    .historico-meses-card .form-select {
+      background-color: rgba(255, 255, 255, 0.94);
+      border-color: rgba(255, 255, 255, 0.2);
     }
 
     .historico-meses {
@@ -598,18 +645,18 @@
       border-radius: 0;
       text-align: center;
       font-size: 17px;
-      color: #6c757d;
+      color: rgba(255, 255, 255, 0.82);
     }
 
     .historico-mes:hover {
-      color: #0d6efd;
+      color: white;
     }
 
     .historico-mes.ativo {
-      color: #0d6efd;
+      color: white;
       font-weight: 800;
-      border-bottom-color: #0d6efd;
-      background: linear-gradient(180deg, rgba(13, 110, 253, 0.08), transparent);
+      border-bottom-color: white;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent);
     }
 
     .historico-valor {
@@ -618,11 +665,11 @@
       white-space: nowrap;
       font-weight: 700;
       font-size: 11px;
-      color: #198754;
+      color: rgba(255, 255, 255, 0.88);
     }
 
     .historico-mes.ativo .historico-valor {
-      color: #0d6efd;
+      color: white;
     }
 
     .auth-gate {
@@ -644,7 +691,11 @@
 
     @media (max-width: 767px) {
       body {
-        padding-top: 86px;
+        padding-top: 238px;
+      }
+
+      body.meses-recolhido {
+        padding-top: 96px;
       }
 
       .app-header {
@@ -682,8 +733,8 @@
         line-height: 1.25;
       }
 
-      .historico-meses-card {
-        top: 92px;
+      .historico-meses-conteudo {
+        max-height: 150px;
       }
     }
   </style>
@@ -727,16 +778,32 @@
 
   <div class="app-header">
 
-    <div class="app-mes-atual">
-      <h6 class="m-0 fw-bold">Controle de Cartão</h6>
-      <small>Mês Atual</small>
-      <strong id="mesAtual"></strong>
+    <div class="app-header-main">
+      <div class="app-mes-atual">
+        <h6 class="m-0 fw-bold">Controle de Cartão</h6>
+        <small>Mês Atual</small>
+        <strong id="mesAtual"></strong>
+      </div>
+
+      <div class="app-config">
+        <button type="button" id="btnToggleValores" class="btn btn-sm btn-outline-light btn-toggle-valores" title="Ocultar valores" onclick="alternarValoresOcultos()">
+          <i id="iconeToggleValores" class="bi bi-eye"></i>
+        </button>
+      </div>
     </div>
 
-    <div class="app-config">
-      <button type="button" id="btnToggleValores" class="btn btn-sm btn-outline-light btn-toggle-valores" title="Ocultar valores" onclick="alternarValoresOcultos()">
-        <i id="iconeToggleValores" class="bi bi-eye"></i>
+    <div class="card p-3 border-0 historico-meses-card historico-meses-topo">
+      <button type="button" class="historico-meses-header" onclick="toggleMesesTopo()">
+        <h6><i class="bi bi-calendar3"></i> Meses</h6>
+        <i id="iconeMesesTopo" class="bi bi-chevron-up"></i>
       </button>
+      <div id="conteudoMesesTopo" class="historico-meses-conteudo">
+        <div class="meses-config">
+          <select id="mesFiltro" class="form-select form-select-sm"></select>
+          <select id="anoFiltro" class="form-select form-select-sm"></select>
+        </div>
+        <div id="historicoMeses"></div>
+      </div>
     </div>
 
   </div>
@@ -748,15 +815,6 @@
       <!-- FORM -->
       <div class="col-12 col-md-5">
         <div class="bloco-esquerda">
-          <div class="card p-3 shadow-sm border-0 historico-meses-card menu-card">
-            <h6 class="mb-2"><i class="bi bi-calendar3"></i> Meses</h6>
-            <div class="meses-config">
-              <select id="mesFiltro" class="form-select form-select-sm"></select>
-              <select id="anoFiltro" class="form-select form-select-sm"></select>
-            </div>
-            <div id="historicoMeses"></div>
-          </div>
-
           <div class="card p-3 shadow-sm border-0 form-compras-card menu-card" data-menu-view="lancamentos">
 
             <button type="button" class="section-toggle" onclick="toggleSecao('secaoAdicionar', 'iconeAdicionar')">
@@ -1219,6 +1277,28 @@
       icone.classList.toggle("bi-chevron-down", estaOculta);
 
       localStorage.setItem(idSecao, estaOculta ? "oculto" : "aberto");
+    }
+
+    function aplicarEstadoMesesTopo(recolhido) {
+      const conteudo = document.getElementById("conteudoMesesTopo");
+      const icone = document.getElementById("iconeMesesTopo");
+
+      document.body.classList.toggle("meses-recolhido", recolhido);
+      if (conteudo) conteudo.classList.toggle("oculto", recolhido);
+      if (icone) {
+        icone.classList.toggle("bi-chevron-up", !recolhido);
+        icone.classList.toggle("bi-chevron-down", recolhido);
+      }
+    }
+
+    function toggleMesesTopo() {
+      const recolhido = !document.body.classList.contains("meses-recolhido");
+      aplicarEstadoMesesTopo(recolhido);
+      localStorage.setItem("mesesTopo", recolhido ? "oculto" : "aberto");
+    }
+
+    function restaurarMesesTopo() {
+      aplicarEstadoMesesTopo(localStorage.getItem("mesesTopo") === "oculto");
     }
 
     function restaurarSecoes() {
@@ -2673,6 +2753,7 @@ ${num === 1 ? `
       anoFiltro.onchange = mostrar;
 
       restaurarSecoes();
+      restaurarMesesTopo();
       mostrarMenu(localStorage.getItem("menuAtivo") || "inicio");
       mostrar();
     }
