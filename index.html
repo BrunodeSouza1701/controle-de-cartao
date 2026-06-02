@@ -16,12 +16,12 @@
   <style>
     body {
       background: #f5f6fa;
-      padding: 226px 10px 96px;
+      padding: var(--espaco-topo, 230px) 10px 96px;
       font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
     body.meses-recolhido {
-      padding-top: 92px;
+      --espaco-topo: 96px;
     }
 
     .card {
@@ -68,6 +68,7 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      align-items: center;
       z-index: 999;
       border-bottom-left-radius: 15px;
       border-bottom-right-radius: 15px;
@@ -75,7 +76,7 @@
     }
 
     .app-header-main {
-      width: 100%;
+      width: min(100%, 980px);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -552,7 +553,7 @@
     }
 
     .historico-meses-card {
-      width: 100%;
+      width: min(100%, 720px);
       background: rgba(255, 255, 255, 0.12);
       border: 1px solid rgba(255, 255, 255, 0.22) !important;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -576,7 +577,8 @@
     }
 
     .historico-meses-topo {
-      width: 100%;
+      width: min(100%, 720px);
+      border-radius: 16px;
     }
 
     .historico-meses-header {
@@ -594,7 +596,7 @@
     .historico-meses-conteudo {
       margin-top: 12px;
       transition: max-height 0.2s ease, opacity 0.2s ease, margin-top 0.2s ease;
-      max-height: 130px;
+      max-height: 160px;
       opacity: 1;
     }
 
@@ -690,16 +692,12 @@
     }
 
     @media (max-width: 767px) {
-      body {
-        padding-top: 238px;
-      }
-
       body.meses-recolhido {
-        padding-top: 96px;
+        --espaco-topo: 104px;
       }
 
       .app-header {
-        align-items: stretch;
+        align-items: center;
       }
 
       .app-mes-atual {
@@ -1289,16 +1287,24 @@
         icone.classList.toggle("bi-chevron-up", !recolhido);
         icone.classList.toggle("bi-chevron-down", recolhido);
       }
+      ajustarEspacoTopo();
     }
 
     function toggleMesesTopo() {
       const recolhido = !document.body.classList.contains("meses-recolhido");
       aplicarEstadoMesesTopo(recolhido);
       localStorage.setItem("mesesTopo", recolhido ? "oculto" : "aberto");
+      setTimeout(ajustarEspacoTopo, 220);
     }
 
     function restaurarMesesTopo() {
       aplicarEstadoMesesTopo(localStorage.getItem("mesesTopo") === "oculto");
+    }
+
+    function ajustarEspacoTopo() {
+      const header = document.querySelector(".app-header");
+      if (!header) return;
+      document.body.style.setProperty("--espaco-topo", `${Math.ceil(header.offsetHeight + 18)}px`);
     }
 
     function restaurarSecoes() {
@@ -2346,6 +2352,7 @@
       grupoMeses.appendChild(botaoProximo);
 
       historico.appendChild(grupoMeses);
+      setTimeout(ajustarEspacoTopo, 0);
     }
 
     // MOSTRAR
@@ -2756,6 +2763,8 @@ ${num === 1 ? `
       restaurarMesesTopo();
       mostrarMenu(localStorage.getItem("menuAtivo") || "inicio");
       mostrar();
+      setTimeout(ajustarEspacoTopo, 0);
+      window.addEventListener("resize", ajustarEspacoTopo);
     }
 
     setupAuthGate();
