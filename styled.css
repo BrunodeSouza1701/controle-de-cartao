@@ -1,0 +1,842 @@
+﻿body {
+      background: #f5f6fa;
+      padding: var(--espaco-topo, 230px) 10px 96px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body.meses-recolhido {
+      --espaco-topo: 96px;
+    }
+
+    .card {
+      border-radius: 18px;
+    }
+
+    .list-group-item {
+      border-radius: 12px;
+      transition: 0.2s;
+    }
+
+    .list-group-item:hover {
+      transform: translateY(-2px);
+      background: #f1f3f5;
+    }
+
+    .acoes-compra {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .acoes-compra .btn {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+    }
+
+    /* 🔥 NOVO - HEADER APP */
+    .app-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: #0d6efd;
+      color: white;
+      padding: 12px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      z-index: 999;
+      border-bottom-left-radius: 15px;
+      border-bottom-right-radius: 15px;
+
+    }
+
+    .app-header-main {
+      width: min(100%, 980px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button {
+      padding: 14px;
+      font-size: 16px;
+    }
+
+    input,
+    select {
+      padding: 12px;
+      font-size: 16px;
+
+    }
+
+    .app-total {
+      text-align: center;
+      line-height: 1.1;
+      min-width: 145px;
+      background: rgba(255, 255, 255, 0.18);
+      padding: 7px 12px;
+      border-radius: 14px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+    }
+
+    .app-total small {
+      display: block;
+      opacity: 0.85;
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+
+    .app-total strong {
+      display: block;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .app-totais-cartoes {
+      display: flex;
+      gap: 6px;
+      align-items: stretch;
+    }
+
+    .app-total-card {
+      min-width: 96px;
+      background: rgba(255, 255, 255, 0.14);
+      padding: 7px 9px;
+      border-radius: 14px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+      line-height: 1.1;
+    }
+
+    .app-total-card small {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      opacity: 0.9;
+      font-size: 11px;
+      margin-bottom: 3px;
+    }
+
+    .app-total-card img {
+      width: 17px;
+      height: 17px;
+      object-fit: contain;
+    }
+
+    .app-total-card strong {
+      display: block;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .home-total-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .resumo-cartoes-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .resumo-cartoes-header .btn-atualizar-pagina {
+      flex-shrink: 0;
+    }
+
+    .home-total-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 118px;
+      border-radius: 16px;
+      padding: 16px;
+      color: #fff;
+      background: linear-gradient(135deg, #0b5ed7, #0dcaf0);
+      box-shadow: 0 12px 28px rgba(13, 110, 253, 0.18);
+    }
+
+    .home-total-card::after {
+      content: "";
+      position: absolute;
+      inset: -80% auto -80% -40%;
+      width: 45%;
+      transform: rotate(22deg);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38), transparent);
+      animation: brilhoCartao 3.8s ease-in-out infinite;
+    }
+
+    .home-total-card.itau {
+      padding: 10px;
+      color: #172033;
+      background: #ffffff;
+      border: 1px solid rgba(255, 122, 0, 0.22);
+      box-shadow: 0 12px 28px rgba(255, 122, 0, 0.14);
+    }
+
+    .home-total-card.carrefour {
+      padding: 10px;
+      color: #172033;
+      background: #ffffff;
+      border: 1px solid rgba(0, 87, 168, 0.2);
+      box-shadow: 0 12px 28px rgba(0, 87, 168, 0.12);
+    }
+
+    .home-total-card.itau::before,
+    .home-total-card.carrefour::before {
+      content: "";
+      position: absolute;
+      top: 10px;
+      bottom: auto;
+      left: -45%;
+      width: 38%;
+      height: 94px;
+      z-index: 3;
+      transform: skewX(-22deg);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+      animation: brilhoCartaoImagem 3.8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .home-card-bg {
+      position: relative !important;
+      display: block;
+      width: 100% !important;
+      height: 94px !important;
+      object-fit: contain !important;
+      background: transparent;
+      border-radius: 12px;
+      filter: drop-shadow(0 8px 14px rgba(15, 23, 42, 0.16)) !important;
+      z-index: 1 !important;
+    }
+
+    .home-card-content {
+      position: relative;
+      z-index: 2;
+      min-height: auto;
+      padding: 10px 2px 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .home-total-card small {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      opacity: 0.9;
+      font-weight: 700;
+    }
+
+    .home-total-card small img {
+      width: 58px;
+      height: 36px;
+      object-fit: contain;
+      background: transparent;
+      mix-blend-mode: normal;
+      filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.24));
+      position: relative;
+      z-index: 1;
+    }
+
+    .home-total-card strong {
+      display: block;
+      margin-top: 18px;
+      font-size: 24px;
+      font-weight: 900;
+      line-height: 1;
+      position: relative;
+      z-index: 1;
+    }
+
+    .home-card-content strong {
+      margin-top: 4px;
+      color: #172033;
+    }
+
+    .inicio-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+
+    .btn-sair-inicio {
+      border-radius: 12px;
+      padding: 9px 14px;
+      font-weight: 700;
+    }
+
+    @keyframes brilhoCartao {
+      0%, 42% {
+        transform: translateX(0) rotate(22deg);
+      }
+      72%, 100% {
+        transform: translateX(420%) rotate(22deg);
+      }
+    }
+
+    @keyframes brilhoCartaoImagem {
+      0%, 42% {
+        transform: translateX(0) skewX(-22deg);
+      }
+      72%, 100% {
+        transform: translateX(420%) skewX(-22deg);
+      }
+    }
+
+    .app-mes-atual {
+      min-width: 140px;
+      line-height: 1.1;
+    }
+
+    .app-mes-atual small {
+      display: block;
+      opacity: 0.82;
+      font-size: 12px;
+      margin-top: 3px;
+    }
+
+    .app-mes-atual strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .app-config {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-toggle-valores {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+    }
+
+    .btn-atualizar-pagina {
+      padding: 8px 14px;
+      font-size: 14px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .menu-card.d-none {
+      display: none !important;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      z-index: 1200;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+      padding: 8px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+      backdrop-filter: blur(10px);
+    }
+
+    .bottom-nav button {
+      border: 0;
+      background: transparent;
+      color: #6c757d;
+      min-height: 56px;
+      padding: 7px 3px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .bottom-nav i {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .bottom-nav button.ativo {
+      color: #0d6efd;
+      background: #e7f1ff;
+    }
+
+    .section-toggle {
+      width: 100%;
+      border: none;
+      background: transparent;
+      padding: 0;
+      font-size: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-align: left;
+      color: inherit;
+    }
+
+    .section-toggle h6 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      color: #212529;
+    }
+
+    .section-content {
+      margin-top: 12px;
+    }
+
+    .section-content.oculto {
+      display: none;
+    }
+
+    .grupo-data {
+      background: #e7f1ff;
+      color: #0d6efd;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 12px;
+      margin: 14px 0 6px;
+      font-size: 14px;
+    }
+
+    .grupo-parcelado-mes {
+      background: #e9ecef;
+      color: #495057;
+    }
+
+    .grupo-parcelado-andamento {
+      background: #d1e7dd;
+      color: #146c43;
+    }
+
+    .grupo-parcelado-ultima {
+      background: #fff3cd;
+      color: #997404;
+    }
+
+    .ranking-categoria {
+      height: 8px;
+      background: #e9ecef;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .ranking-categoria-barra {
+      height: 100%;
+      background: #0d6efd;
+      border-radius: 999px;
+    }
+
+    .filtro-ativo {
+      background: #fff3cd;
+      border-radius: 12px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .filtro-cartao {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .filtro-cartao button {
+      min-height: 42px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .filtro-cartao img {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+    }
+
+    .categoria-clicavel {
+      cursor: pointer;
+    }
+
+    .modal-app {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 2000;
+    }
+
+    .modal-app.d-none {
+      display: none;
+    }
+
+    .bg-orange {
+      background-color: #fd7e14 !important;
+    }
+
+    .modal-app-caixa {
+      width: min(100%, 360px);
+      background: white;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+    }
+
+    .bloco-esquerda {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .form-compras-card {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+      margin-bottom: 14px;
+    }
+
+    .historico-meses-card {
+      width: min(100%, 720px);
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.22) !important;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      color: white;
+      overflow: hidden;
+    }
+
+    .meses-config {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(92px, 0.45fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .historico-meses-card h6 {
+      color: white;
+      font-weight: 800;
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .historico-meses-topo {
+      width: min(100%, 720px);
+      border-radius: 16px;
+    }
+
+    .historico-meses-header {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: white;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-align: left;
+    }
+
+    .historico-meses-conteudo {
+      margin-top: 12px;
+      transition: max-height 0.2s ease, opacity 0.2s ease, margin-top 0.2s ease;
+      max-height: 160px;
+      opacity: 1;
+    }
+
+    .historico-meses-conteudo.oculto {
+      max-height: 0;
+      opacity: 0;
+      margin-top: 0;
+      overflow: hidden;
+    }
+
+    .historico-meses-card .form-select {
+      background-color: rgba(255, 255, 255, 0.94);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .historico-meses {
+      display: grid;
+      grid-template-columns: 36px repeat(3, minmax(0, 1fr)) 36px;
+      align-items: end;
+      gap: 6px;
+    }
+
+    .historico-navegacao {
+      width: 36px;
+      height: 54px;
+      border: 0;
+      background: #eef5ff;
+      color: #0d6efd;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      border-radius: 12px;
+      align-self: stretch;
+    }
+
+    .historico-navegacao:hover {
+      background: #dcecff;
+    }
+
+    .historico-mes {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      padding: 9px 2px 12px;
+      border-bottom: 3px solid transparent;
+      border-radius: 0;
+      text-align: center;
+      font-size: 17px;
+      color: rgba(255, 255, 255, 0.82);
+    }
+
+    .historico-mes:hover {
+      color: white;
+    }
+
+    .historico-mes.ativo {
+      color: white;
+      font-weight: 800;
+      border-bottom-color: white;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent);
+    }
+
+    .historico-valor {
+      display: block;
+      margin-top: 3px;
+      white-space: nowrap;
+      font-weight: 700;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    .historico-mes.ativo .historico-valor {
+      color: white;
+    }
+
+    .auth-gate {
+      z-index: 10000;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(8px);
+    }
+
+    .login-card-machine {
+      position: relative;
+      width: min(100%, 290px);
+      height: 190px;
+      margin: 0 auto 18px;
+      overflow: hidden;
+      border-radius: 22px;
+      background: radial-gradient(circle at 24% 18%, rgba(13, 110, 253, 0.2), transparent 34%),
+        linear-gradient(145deg, #eff6ff, #ffffff);
+      box-shadow: inset 0 0 0 1px rgba(13, 110, 253, 0.08);
+    }
+
+    .login-card-machine::after {
+      content: "";
+      position: absolute;
+      inset: -60% auto -60% -40%;
+      width: 32%;
+      transform: rotate(24deg);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+      animation: loginBrilho 4.2s ease-in-out infinite;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .login-machine {
+      position: absolute;
+      left: 50%;
+      bottom: 14px;
+      width: 128px;
+      height: 150px;
+      transform: translateX(-50%);
+      border-radius: 22px;
+      background: linear-gradient(180deg, #f8fafc, #cbd5e1);
+      box-shadow: 0 16px 24px rgba(15, 23, 42, 0.22);
+      z-index: 2;
+    }
+
+    .login-machine-screen,
+    .login-machine-slot {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      border-radius: 10px;
+      background: #172033;
+    }
+
+    .login-machine-screen {
+      top: 24px;
+      height: 42px;
+    }
+
+    .login-machine-slot {
+      top: 88px;
+      height: 12px;
+    }
+
+    .login-machine-buttons {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 26px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .login-machine-buttons span {
+      width: 22px;
+      height: 14px;
+      border-radius: 6px;
+      background: #0d6efd;
+    }
+
+    .login-machine-buttons span:nth-child(2) {
+      background: #198754;
+    }
+
+    .login-machine-buttons span:nth-child(3) {
+      background: #dc3545;
+    }
+
+    .login-card-img {
+      position: absolute;
+      width: 138px;
+      height: 88px;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 12px rgba(15, 23, 42, 0.24));
+      z-index: 3;
+      animation: loginCardFloat 4.8s ease-in-out infinite;
+    }
+
+    .login-card-itau {
+      left: 18px;
+      top: 32px;
+      transform: rotate(-13deg);
+    }
+
+    .login-card-carrefour {
+      right: 16px;
+      top: 48px;
+      transform: rotate(9deg);
+      animation-delay: 0.35s;
+    }
+
+    @keyframes loginCardFloat {
+      0%, 100% {
+        translate: 0 0;
+      }
+      50% {
+        translate: 0 7px;
+      }
+    }
+
+    @keyframes loginBrilho {
+      0%, 42% {
+        transform: translateX(0) rotate(24deg);
+      }
+      72%, 100% {
+        transform: translateX(520%) rotate(24deg);
+      }
+    }
+
+    @media (max-width: 991px) {
+      .bloco-esquerda {
+        flex-direction: column;
+      }
+
+      .historico-meses-card {
+        width: 100%;
+        flex: none;
+      }
+    }
+
+    @media (max-width: 767px) {
+      body.meses-recolhido {
+        --espaco-topo: 104px;
+      }
+
+      .app-header {
+        align-items: center;
+      }
+
+      .app-mes-atual {
+        min-width: 0;
+        width: calc(50% - 4px);
+      }
+
+      .app-config {
+        width: calc(50% - 4px);
+        justify-content: flex-end;
+      }
+
+      .home-total-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .home-total-card {
+        min-height: 96px;
+      }
+
+      .home-total-card strong {
+        margin-top: 12px;
+        font-size: 22px;
+      }
+
+      .resumo-cartoes-header {
+        align-items: flex-start;
+      }
+
+      .resumo-cartoes-header h6 {
+        line-height: 1.25;
+      }
+
+      .historico-meses-conteudo {
+        max-height: 150px;
+      }
+    }

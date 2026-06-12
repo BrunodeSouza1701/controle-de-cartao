@@ -141,9 +141,12 @@ function parseItauNotification(texto: string): {
   debug: Record<string, unknown>;
 } {
   const raw = texto.replace(/\s+/g, " ").trim();
-  const valorMatch = raw.match(/R(?:\$|S)\s*([\d.]+,\d{2})/i);
-  const dataMatch = raw.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-  const descMatch = raw.match(/final\s+\d+\s*-\s*(.*?)\s*-\s*R(?:\$|S)\s*/i);
+  const valorMatch = raw.match(/(?:valor\s*)?R(?:\$|S)\s*([\d.]+,\d{2})/i);
+  const dataMatch = raw.match(/(\d{2})\/(\d{2})(?:\/(\d{4}))?/);
+  const descMatch =
+    raw.match(/final\s+\d+\s*-\s*(.*?)\s*(?:-\s*)?(?:valor\s*)?R(?:\$|S)\s*/i) ||
+    raw.match(/final\s+\d+\s*-\s*(.*?)\s+em\s+\d{2}\/\d{2}(?:\/\d{4})?/i);
+  const ano = dataMatch?.[3] || String(new Date().getUTCFullYear());
 
   const debug = {
     parser: "itau",
@@ -154,7 +157,7 @@ function parseItauNotification(texto: string): {
   };
 
   return {
-    data: dataMatch ? `${dataMatch[3]}-${dataMatch[2]}-${dataMatch[1]}` : "",
+    data: dataMatch ? `${ano}-${dataMatch[2]}-${dataMatch[1]}` : "",
     valor: valorMatch ? parseMoneyBR(valorMatch[1]) : 0,
     descricao: descMatch ? formatDescription(descMatch[1]) : "",
     tipo: "Outros",
