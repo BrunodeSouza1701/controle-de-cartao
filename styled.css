@@ -839,4 +839,32 @@
       .historico-meses-conteudo {
         max-height: 150px;
       }
+
+      .historico-meses {
+        grid-template-columns: 32px repeat(3, minmax(0, 1fr)) 32px;
+        gap: 4px;
+      }
+
+      .historico-navegacao {
+        width: 32px;
+        height: 50px;
+        font-size: 22px;
+      }
+
+      .historico-mes {
+        min-width: 0;
+        overflow: hidden;
+        padding: 8px 0 11px;
+        font-size: 14px;
+      }
+
+      .historico-mes span:first-child {
+        display: block;
+        white-space: nowrap;
+        line-height: 1.2;
+      }
+
+      .historico-valor {
+        font-size: 11px;
+      }
     }
