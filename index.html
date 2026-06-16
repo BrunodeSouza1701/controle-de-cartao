@@ -743,6 +743,9 @@
         modalConfirmar.innerText = confirmarTexto;
         modalCancelar.innerText = cancelarTexto;
         modalCancelar.classList.toggle("d-none", !mostrarCancelar);
+        modalEntrada.classList.add("d-none");
+        modalEntrada.value = "";
+        modalEntrada.onkeydown = null;
 
         modalApp.classList.remove("d-none");
 
@@ -754,6 +757,47 @@
         modalCancelar.onclick = () => {
           modalApp.classList.add("d-none");
           resolve(false);
+        };
+      });
+    }
+
+    function entradaApp({ titulo, mensagem, valorInicial = "", tipo = "text", confirmarTexto = "Confirmar", cancelarTexto = "Cancelar" }) {
+      return new Promise(resolve => {
+        modalTitulo.innerText = titulo;
+        modalMensagem.innerText = mensagem;
+        modalConfirmar.innerText = confirmarTexto;
+        modalCancelar.innerText = cancelarTexto;
+        modalCancelar.classList.remove("d-none");
+
+        modalEntrada.type = tipo;
+        modalEntrada.value = valorInicial;
+        modalEntrada.classList.remove("d-none");
+        modalEntrada.onkeydown = evento => {
+          if (evento.key === "Enter") {
+            evento.preventDefault();
+            modalConfirmar.click();
+          }
+        };
+
+        modalApp.classList.remove("d-none");
+        setTimeout(() => {
+          modalEntrada.focus();
+          modalEntrada.select();
+        }, 50);
+
+        modalConfirmar.onclick = () => {
+          const valor = modalEntrada.value.trim();
+          modalEntrada.classList.add("d-none");
+          modalEntrada.onkeydown = null;
+          modalApp.classList.add("d-none");
+          resolve(valor);
+        };
+
+        modalCancelar.onclick = () => {
+          modalEntrada.classList.add("d-none");
+          modalEntrada.onkeydown = null;
+          modalApp.classList.add("d-none");
+          resolve(null);
         };
       });
     }
@@ -1545,10 +1589,13 @@
 
       if (!compraOriginal) return;
 
-      const resposta = prompt(
-        `Repetir "${compraOriginal.descricao}" por quantos meses após o mês original?`,
-        "1"
-      );
+      const resposta = await entradaApp({
+        titulo: "Multiplicar compra",
+        mensagem: `Repetir "${compraOriginal.descricao}" por quantos meses após o mês original?`,
+        valorInicial: "1",
+        tipo: "number",
+        confirmarTexto: "Continuar"
+      });
 
       if (resposta === null) return;
 
@@ -2203,6 +2250,7 @@ ${num === 1 ? `
     <div class="modal-app-caixa">
       <h6 id="modalTitulo" class="fw-bold mb-2"></h6>
       <p id="modalMensagem" class="text-muted mb-3"></p>
+      <input id="modalEntrada" class="form-control mb-3 d-none" type="text">
       <div class="d-flex gap-2">
         <button id="modalCancelar" type="button" class="btn btn-outline-secondary w-100 rounded-pill">
           Cancelar
