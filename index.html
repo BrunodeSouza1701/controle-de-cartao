@@ -1530,6 +1530,60 @@
       mostrar();
     }
 
+    function adicionarMesesNaData(dataISO, meses) {
+      const [ano, mes, dia] = normalizarData(dataISO).split("-").map(Number);
+      const destino = new Date(ano, mes - 1 + meses, 1);
+      const ultimoDia = new Date(destino.getFullYear(), destino.getMonth() + 1, 0).getDate();
+      destino.setDate(Math.min(dia, ultimoDia));
+
+      return `${destino.getFullYear()}-${String(destino.getMonth() + 1).padStart(2, "0")}-${String(destino.getDate()).padStart(2, "0")}`;
+    }
+
+    async function multiplicarCompra(id) {
+      const compras = JSON.parse(localStorage.getItem("compras")) || [];
+      const compraOriginal = compras.find(c => c.id == id);
+
+      if (!compraOriginal) return;
+
+      const resposta = prompt(
+        `Repetir "${compraOriginal.descricao}" por quantos meses após o mês original?`,
+        "1"
+      );
+
+      if (resposta === null) return;
+
+      const quantidadeMeses = parseInt(resposta, 10);
+
+      if (!Number.isFinite(quantidadeMeses) || quantidadeMeses < 1 || quantidadeMeses > 120) {
+        await avisoApp("Quantidade inválida", "Informe um número entre 1 e 120 meses.");
+        return;
+      }
+
+      const confirmar = await abrirModalApp({
+        titulo: "Multiplicar compra",
+        mensagem: `Serão criadas ${quantidadeMeses} cópias mensais de "${compraOriginal.descricao}", mantendo valor, cartão e categoria. Confirmar?`,
+        confirmarTexto: "Multiplicar"
+      });
+
+      if (!confirmar) return;
+
+      for (let i = 1; i <= quantidadeMeses; i++) {
+        const novaData = adicionarMesesNaData(compraOriginal.data, i);
+        const novaCompra = {
+          ...compraOriginal,
+          id: Date.now() + i,
+          data: novaData,
+          ordem: proximaOrdemCompra(compras, novaData)
+        };
+
+        compras.push(novaCompra);
+      }
+
+      persistSet("compras", JSON.stringify(compras));
+      mostrar();
+      await avisoApp("Compras criadas", `${quantidadeMeses} cópias mensais foram adicionadas.`);
+    }
+
     async function deletarComprasDoMes() {
       let compras = JSON.parse(localStorage.getItem("compras")) || [];
       let mesSelecionado = parseInt(mesFiltro.value);
@@ -1791,6 +1845,9 @@ ${num === 1 ? `
   </button>
   <button class="btn btn-sm btn-info" title="Transferir" onclick="transferirCompra('${c.id}')">
     <i class="bi bi-arrow-left-right"></i>
+  </button>
+  <button class="btn btn-sm btn-outline-success" title="Multiplicar por meses" onclick="multiplicarCompra('${c.id}')">
+    <i class="bi bi-calendar-plus"></i>
   </button>
   <button class="btn btn-sm btn-danger" title="Excluir" onclick="deletar('${c.id}')">
     <i class="bi bi-trash"></i>
