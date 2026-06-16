@@ -209,7 +209,18 @@
             <i id="iconeLancamentos" class="bi bi-chevron-up"></i>
           </button>
           <div id="secaoLancamentos" class="section-content">
-            <input id="buscaLancamento" class="form-control mb-2" placeholder="Pesquisar lançamento ou categoria" inputmode="search">
+            <div class="btn-group w-100 mb-2" role="group" aria-label="Tipo de pesquisa">
+              <button id="btnPesquisaLancamento" type="button" class="btn btn-primary" onclick="alternarPesquisaLancamento('lancamento')">
+                <i class="bi bi-search"></i> Lançamento
+              </button>
+              <button id="btnPesquisaCategoria" type="button" class="btn btn-outline-primary" onclick="alternarPesquisaLancamento('categoria')">
+                <i class="bi bi-tags"></i> Categoria
+              </button>
+            </div>
+            <input id="buscaLancamento" class="form-control mb-2" placeholder="Pesquisar lançamento" inputmode="search">
+            <select id="filtroCategoriaLancamento" class="form-select mb-2 d-none" onchange="filtrarCategoriaLancamento(this.value)">
+              <option value="">Todas as categorias</option>
+            </select>
             <div class="filtro-cartao" aria-label="Filtrar lançamentos por cartão">
               <button type="button" class="btn btn-primary" data-filtro-cartao="" onclick="filtrarPorCartao('')">
                 <i class="bi bi-credit-card-2-front"></i> Todos
@@ -646,7 +657,9 @@
     }
 
     function filtrarPorTipoCategoria(tipoFiltro) {
+      alternarPesquisaLancamento("categoria", false);
       filtroTipoAtual = tipoFiltro;
+      if (window.filtroCategoriaLancamento) filtroCategoriaLancamento.value = tipoFiltro;
 
       const secao = document.getElementById("secaoLancamentos");
       const icone = document.getElementById("iconeLancamentos");
@@ -686,11 +699,40 @@
       filtroCartaoAtual = "";
       buscaLancamentoAtual = "";
       buscaLancamento.value = "";
+      if (window.filtroCategoriaLancamento) filtroCategoriaLancamento.value = "";
       mostrar();
     }
 
     function pesquisarLancamentos() {
       buscaLancamentoAtual = buscaLancamento.value.trim();
+      mostrar();
+    }
+
+    function alternarPesquisaLancamento(modo, atualizar = true) {
+      modoPesquisaLancamento = modo === "categoria" ? "categoria" : "lancamento";
+      const modoCategoria = modoPesquisaLancamento === "categoria";
+
+      btnPesquisaLancamento.classList.toggle("btn-primary", !modoCategoria);
+      btnPesquisaLancamento.classList.toggle("btn-outline-primary", modoCategoria);
+      btnPesquisaCategoria.classList.toggle("btn-primary", modoCategoria);
+      btnPesquisaCategoria.classList.toggle("btn-outline-primary", !modoCategoria);
+
+      buscaLancamento.classList.toggle("d-none", modoCategoria);
+      filtroCategoriaLancamento.classList.toggle("d-none", !modoCategoria);
+
+      if (modoCategoria) {
+        buscaLancamentoAtual = "";
+        buscaLancamento.value = "";
+      } else {
+        filtroTipoAtual = "";
+        filtroCategoriaLancamento.value = "";
+      }
+
+      if (atualizar) mostrar();
+    }
+
+    function filtrarCategoriaLancamento(categoria) {
+      filtroTipoAtual = categoria;
       mostrar();
     }
 
@@ -1199,6 +1241,7 @@
     let filtroTipoAtual = "";
     let filtroCartaoAtual = "";
     let buscaLancamentoAtual = "";
+    let modoPesquisaLancamento = "lancamento";
     let valoresOcultos = localStorage.getItem("valoresOcultos") === "true";
     let totaisVisiveisAtuais = {
       total: "0,00",
@@ -1821,7 +1864,6 @@ ${num === 1 ? `
         ? lancamentosFiltrados.filter(l => {
           const camposBusca = [
             l.descricao,
-            l.tipo,
             nomeCartaoExibicao(l.cartao),
             l.dataTexto
           ].map(campo => normalizarTexto(campo || "")).join(" ");
@@ -2037,6 +2079,7 @@ ${num === 1 ? `
 
       // joga no select
       tipo.innerHTML = categorias.map(c => `<option>${c}</option>`).join("");
+      filtroCategoriaLancamento.innerHTML = `<option value="">Todas as categorias</option>` + categorias.map(c => `<option>${c}</option>`).join("");
       orcamentoCategoria.innerHTML = categorias.map(c => `<option>${c}</option>`).join("");
       atualizarCampoOrcamento();
 
