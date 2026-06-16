@@ -209,7 +209,7 @@
             <i id="iconeLancamentos" class="bi bi-chevron-up"></i>
           </button>
           <div id="secaoLancamentos" class="section-content">
-            <input id="buscaLancamento" class="form-control mb-2" placeholder="Pesquisar lançamento" inputmode="search">
+            <input id="buscaLancamento" class="form-control mb-2" placeholder="Pesquisar lançamento ou categoria" inputmode="search">
             <div class="filtro-cartao" aria-label="Filtrar lançamentos por cartão">
               <button type="button" class="btn btn-primary" data-filtro-cartao="" onclick="filtrarPorCartao('')">
                 <i class="bi bi-credit-card-2-front"></i> Todos
@@ -1818,7 +1818,16 @@ ${num === 1 ? `
         : lancamentosPorTipo;
       const buscaNormalizada = normalizarTexto(buscaLancamentoAtual);
       const lancamentosVisiveis = buscaNormalizada
-        ? lancamentosFiltrados.filter(l => normalizarTexto(l.descricao).includes(buscaNormalizada))
+        ? lancamentosFiltrados.filter(l => {
+          const camposBusca = [
+            l.descricao,
+            l.tipo,
+            nomeCartaoExibicao(l.cartao),
+            l.dataTexto
+          ].map(campo => normalizarTexto(campo || "")).join(" ");
+
+          return camposBusca.includes(buscaNormalizada);
+        })
         : lancamentosFiltrados;
 
       if (filtroTipoAtual || filtroCartaoAtual) {
