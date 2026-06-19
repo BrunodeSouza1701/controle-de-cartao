@@ -264,6 +264,44 @@
           </div>
         </div>
 
+        <div class="card p-3 shadow-sm border-0 mb-3 menu-card" data-menu-view="compras">
+          <button type="button" class="section-toggle" onclick="toggleSecao('secaoExportarPDF', 'iconeExportarPDF')">
+            <h6><i class="bi bi-file-earmark-pdf"></i> Exportar PDF</h6>
+            <i id="iconeExportarPDF" class="bi bi-chevron-up"></i>
+          </button>
+          <div id="secaoExportarPDF" class="section-content">
+            <div class="row g-2">
+              <div class="col-7">
+                <select id="pdfMes" class="form-select"></select>
+              </div>
+              <div class="col-5">
+                <select id="pdfAno" class="form-select"></select>
+              </div>
+            </div>
+            <select id="pdfTipo" class="form-select mt-2" onchange="atualizarCamposExportacaoPDF()">
+              <option value="lancamentos">Lançamentos</option>
+              <option value="categoria">Por categoria</option>
+              <option value="descricao">Por descrição</option>
+            </select>
+            <select id="pdfCategoria" class="form-select mt-2 d-none"></select>
+            <input id="pdfDescricao" class="form-control mt-2 d-none" placeholder="Digite parte da descrição">
+            <select id="pdfCartao" class="form-select mt-2">
+              <option value="">Todos os cartões</option>
+              <option value="Itau">Itaú</option>
+              <option value="Carrefour">Carrefour</option>
+            </select>
+            <div class="form-check form-switch mt-3">
+              <input id="pdfParceladosAberto" class="form-check-input" type="checkbox">
+              <label class="form-check-label" for="pdfParceladosAberto">
+                Incluir parcelados em aberto
+              </label>
+            </div>
+            <button type="button" class="btn btn-outline-danger w-100 rounded-pill mt-3" onclick="exportarComprasPDF()">
+              <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+            </button>
+          </div>
+        </div>
+
         <div class="card p-3 shadow-sm border-0 mb-3 menu-card" data-menu-view="controle">
           <button type="button" class="section-toggle" onclick="toggleSecao('secaoCategorias', 'iconeCategorias')">
             <h6><i class="bi bi-pie-chart"></i> Categorias</h6>
@@ -616,6 +654,7 @@
         ["secaoLancamentos", "iconeLancamentos"],
         ["secaoCategorias", "iconeCategorias"],
         ["secaoAVista", "iconeAVista"],
+        ["secaoExportarPDF", "iconeExportarPDF"],
         ["secaoCartoes", "iconeCartoes"],
         ["secaoOrcamentos", "iconeOrcamentos"]
       ];
@@ -2156,6 +2195,271 @@ ${num === 1 ? `
       return li;
     }
 
+    function atualizarCamposExportacaoPDF() {
+      const tipoRelatorio = pdfTipo.value;
+      pdfCategoria.classList.toggle("d-none", tipoRelatorio !== "categoria");
+      pdfDescricao.classList.toggle("d-none", tipoRelatorio !== "descricao");
+    }
+
+    function escapeHTML(valor) {
+      return valor?.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;") || "";
+    }
+
+    function formatarMoeda(valor) {
+      return `R$ ${Number(valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    function formatarDataBR(dataISO) {
+      const [ano, mes, dia] = normalizarData(dataISO).split("-");
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    function obterLancamentosParaRelatorio(mes, ano, cartaoFiltro) {
+      const compras = JSON.parse(localStorage.getItem("compras")) || [];
+      const lancamentos = [];
+
+      compras.forEach(compra => {
+        const dataCompra = normalizarData(compra.data);
+        const partes = dataCompra.split("-").map(Number);
+        const dataBase = new Date(partes[0], partes[1] - 1, partes[2]);
+        const totalParcelas = normalizarParcelas(compra.parcelas);
+        const valorParcela = Math.round(Number(compra.valor || 0) / totalParcelas * 100) / 100;
+        const competenciaBase = mesCompetenciaCompra(compra.cartao, dataBase);
+        const cartaoCompra = nomeCartaoPadronizado(compra.cartao);
+
+        if (cartaoFiltro && cartaoCompra !== cartaoFiltro) return;
+
+        for (let indice = 0; indice < totalParcelas; indice++) {
+          const dataCompetencia = new Date(competenciaBase);
+          dataCompetencia.setMonth(competenciaBase.getMonth() + indice);
+
+          if (dataCompetencia.getMonth() !== mes || dataCompetencia.getFullYear() !== ano) continue;
+
+          lancamentos.push({
+            data: dataBase,
+            dataTexto: formatarDataBR(dataCompra),
+            descricao: compra.descricao || "",
+            tipo: compra.tipo || "Outros",
+            cartao: cartaoCompra,
+            valor: valorParcela,
+            parcelas: totalParcelas,
+            parcelaAtual: indice + 1,
+            valorTotal: Number(compra.valor || 0),
+            ordem: ordemCompra(compra)
+          });
+        }
+      });
+
+      return lancamentos.sort((a, b) => (b.data - a.data) || (a.ordem - b.ordem));
+    }
+
+    function obterParceladosEmAbertoParaRelatorio(mes, ano, cartaoFiltro) {
+      const compras = JSON.parse(localStorage.getItem("compras")) || [];
+      const selecionado = new Date(ano, mes, 1);
+      const parcelados = [];
+
+      compras.forEach(compra => {
+        const totalParcelas = normalizarParcelas(compra.parcelas);
+        const cartaoCompra = nomeCartaoPadronizado(compra.cartao);
+
+        if (totalParcelas <= 1) return;
+        if (cartaoFiltro && cartaoCompra !== cartaoFiltro) return;
+
+        const dataCompra = normalizarData(compra.data);
+        const partes = dataCompra.split("-").map(Number);
+        const dataBase = new Date(partes[0], partes[1] - 1, partes[2]);
+        const competenciaBase = mesCompetenciaCompra(compra.cartao, dataBase);
+        const mesesPassados = (ano - competenciaBase.getFullYear()) * 12 + (mes - competenciaBase.getMonth());
+        const parcelaAtual = mesesPassados + 1;
+
+        if (parcelaAtual < 1 || parcelaAtual > totalParcelas) return;
+
+        const valorParcela = Math.round(Number(compra.valor || 0) / totalParcelas * 100) / 100;
+        const parcelasRestantes = totalParcelas - parcelaAtual + 1;
+
+        parcelados.push({
+          data: dataBase,
+          dataTexto: formatarDataBR(dataCompra),
+          descricao: compra.descricao || "",
+          tipo: compra.tipo || "Outros",
+          cartao: cartaoCompra,
+          parcelaAtual,
+          totalParcelas,
+          valorParcela,
+          valorTotal: Number(compra.valor || 0),
+          saldoAberto: Math.round(valorParcela * parcelasRestantes * 100) / 100
+        });
+      });
+
+      return parcelados.sort((a, b) => a.cartao.localeCompare(b.cartao, "pt-BR") || a.descricao.localeCompare(b.descricao, "pt-BR"));
+    }
+
+    function linhaRelatorio(lancamento) {
+      const parcela = lancamento.parcelas > 1
+        ? `${lancamento.parcelaAtual}/${lancamento.parcelas}`
+        : "À vista";
+
+      return `
+        <tr>
+          <td>${escapeHTML(lancamento.dataTexto)}</td>
+          <td>${escapeHTML(lancamento.descricao)}</td>
+          <td>${escapeHTML(lancamento.tipo)}</td>
+          <td>${escapeHTML(nomeCartaoExibicao(lancamento.cartao))}</td>
+          <td>${escapeHTML(parcela)}</td>
+          <td class="valor">${formatarMoeda(lancamento.valor)}</td>
+        </tr>
+      `;
+    }
+
+    function exportarComprasPDF() {
+      const mes = parseInt(pdfMes.value, 10);
+      const ano = parseInt(pdfAno.value, 10);
+      const tipoRelatorio = pdfTipo.value;
+      const cartaoFiltro = pdfCartao.value;
+      const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+      let lancamentos = obterLancamentosParaRelatorio(mes, ano, cartaoFiltro);
+      let descricaoFiltro = "";
+
+      if (tipoRelatorio === "categoria") {
+        const categoria = pdfCategoria.value;
+        descricaoFiltro = categoria ? `Categoria: ${categoria}` : "Categoria: todas";
+        if (categoria) {
+          lancamentos = lancamentos.filter(item => normalizarTexto(item.tipo) === normalizarTexto(categoria));
+        }
+      } else if (tipoRelatorio === "descricao") {
+        const termo = pdfDescricao.value.trim();
+        descricaoFiltro = termo ? `Descrição: ${termo}` : "Descrição: todas";
+        if (termo) {
+          lancamentos = lancamentos.filter(item => normalizarTexto(item.descricao).includes(normalizarTexto(termo)));
+        }
+      } else {
+        descricaoFiltro = "Lançamentos";
+      }
+
+      const parcelados = pdfParceladosAberto.checked
+        ? obterParceladosEmAbertoParaRelatorio(mes, ano, cartaoFiltro)
+        : [];
+      const totalLancamentos = lancamentos.reduce((soma, item) => soma + item.valor, 0);
+      const totalParcelados = parcelados.reduce((soma, item) => soma + item.saldoAberto, 0);
+      const cartaoTexto = cartaoFiltro ? nomeCartaoExibicao(cartaoFiltro) : "Todos";
+      const dataGeracao = new Date().toLocaleString("pt-BR");
+
+      const linhasLancamentos = lancamentos.length
+        ? lancamentos.map(linhaRelatorio).join("")
+        : `<tr><td colspan="6" class="vazio">Nenhum lançamento encontrado.</td></tr>`;
+
+      const linhasParcelados = parcelados.length
+        ? parcelados.map(item => `
+          <tr>
+            <td>${escapeHTML(item.dataTexto)}</td>
+            <td>${escapeHTML(item.descricao)}</td>
+            <td>${escapeHTML(item.tipo)}</td>
+            <td>${escapeHTML(nomeCartaoExibicao(item.cartao))}</td>
+            <td>${item.parcelaAtual}/${item.totalParcelas}</td>
+            <td class="valor">${formatarMoeda(item.valorParcela)}</td>
+            <td class="valor">${formatarMoeda(item.valorTotal)}</td>
+            <td class="valor">${formatarMoeda(item.saldoAberto)}</td>
+          </tr>
+        `).join("")
+        : `<tr><td colspan="8" class="vazio">Nenhum parcelado em aberto encontrado.</td></tr>`;
+
+      const htmlRelatorio = `
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Relatório de Compras</title>
+  <style>
+    body { font-family: Arial, sans-serif; color: #172033; margin: 28px; }
+    header { border-bottom: 3px solid #0d6efd; padding-bottom: 12px; margin-bottom: 18px; }
+    h1 { font-size: 24px; margin: 0 0 6px; }
+    h2 { font-size: 18px; margin: 24px 0 10px; color: #0d6efd; }
+    .meta { color: #5f6b7a; font-size: 13px; line-height: 1.5; }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
+    .card { border: 1px solid #dbe4f0; border-radius: 10px; padding: 10px; }
+    .card small { display: block; color: #64748b; margin-bottom: 4px; }
+    .card strong { font-size: 18px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { background: #eef5ff; color: #172033; text-align: left; }
+    th, td { border: 1px solid #dbe4f0; padding: 7px; vertical-align: top; }
+    .valor { text-align: right; white-space: nowrap; }
+    .vazio { text-align: center; color: #64748b; padding: 14px; }
+    @media print { body { margin: 16mm; } button { display: none; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Relatório de Compras</h1>
+    <div class="meta">
+      Período: ${escapeHTML(nomesMeses[mes])} / ${ano}<br>
+      Filtro: ${escapeHTML(descricaoFiltro)}<br>
+      Cartão: ${escapeHTML(cartaoTexto)}<br>
+      Gerado em: ${escapeHTML(dataGeracao)}
+    </div>
+  </header>
+  <section class="cards">
+    <div class="card"><small>Lançamentos</small><strong>${lancamentos.length}</strong></div>
+    <div class="card"><small>Total lançado</small><strong>${formatarMoeda(totalLancamentos)}</strong></div>
+    <div class="card"><small>Saldo parcelado aberto</small><strong>${formatarMoeda(totalParcelados)}</strong></div>
+  </section>
+  <h2>Lançamentos</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Descrição</th>
+        <th>Categoria</th>
+        <th>Cartão</th>
+        <th>Parcela</th>
+        <th class="valor">Valor</th>
+      </tr>
+    </thead>
+    <tbody>${linhasLancamentos}</tbody>
+  </table>
+  ${pdfParceladosAberto.checked ? `
+    <h2>Parcelados em aberto</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Descrição</th>
+          <th>Categoria</th>
+          <th>Cartão</th>
+          <th>Parcela atual</th>
+          <th class="valor">Valor parcela</th>
+          <th class="valor">Total compra</th>
+          <th class="valor">Saldo aberto</th>
+        </tr>
+      </thead>
+      <tbody>${linhasParcelados}</tbody>
+    </table>
+  ` : ""}
+  <script>
+    window.onload = () => {
+      window.print();
+    };
+  <\/script>
+</body>
+</html>
+      `;
+
+      const janela = window.open("", "_blank");
+      if (!janela) {
+        avisoApp("Pop-up bloqueado", "Permita pop-ups para exportar o relatório em PDF.");
+        return;
+      }
+
+      janela.document.open();
+      janela.document.write(htmlRelatorio);
+      janela.document.close();
+    }
+
     // INIT
     async function init() {
       await pullFromCloudIfEnabled();
@@ -2184,20 +2488,25 @@ ${num === 1 ? `
       // joga no select
       tipo.innerHTML = categorias.map(c => `<option>${c}</option>`).join("");
       filtroCategoriaLancamento.innerHTML = `<option value="">Todas as categorias</option>` + categorias.map(c => `<option>${c}</option>`).join("");
+      pdfCategoria.innerHTML = `<option value="">Todas as categorias</option>` + categorias.map(c => `<option>${c}</option>`).join("");
       orcamentoCategoria.innerHTML = categorias.map(c => `<option>${c}</option>`).join("");
       atualizarCampoOrcamento();
 
       const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
       mesFiltro.innerHTML = meses.map((m, i) => `<option value="${i}">${m}</option>`).join("");
+      pdfMes.innerHTML = meses.map((m, i) => `<option value="${i}">${m}</option>`).join("");
 
       let anoAtual = new Date().getFullYear();
 
       for (let i = anoAtual - 1; i <= anoAtual + 2; i++) {
         anoFiltro.innerHTML += `<option value="${i}">${i}</option>`;
+        pdfAno.innerHTML += `<option value="${i}">${i}</option>`;
       }
 
       mesFiltro.value = new Date().getMonth();
       anoFiltro.value = anoAtual;
+      pdfMes.value = mesFiltro.value;
+      pdfAno.value = anoFiltro.value;
 
       const _hojeInit = new Date();
       data.value = `${_hojeInit.getFullYear()}-${String(_hojeInit.getMonth() + 1).padStart(2, '0')}-${String(_hojeInit.getDate()).padStart(2, '0')}`;
