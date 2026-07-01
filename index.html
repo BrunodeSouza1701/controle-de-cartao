@@ -1018,7 +1018,7 @@
                   <strong>Semana ${semana.indice + 1}</strong>
                   <small>${semana.inicio}-${semana.fim}</small>
                 </div>
-                <small>${statusSemana.texto}</small>
+                <small>${statusSemana.texto} · ${percentualSemana.toFixed(0)}%</small>
                 <div class="orcamento-semana-barra"><span style="width:${percentualSemana}%"></span></div>
                 <div class="small d-flex justify-content-between">
                   <span>${semana.consumido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
