@@ -1,11 +1,11 @@
 ﻿body {
       background: #f5f6fa;
-      padding: var(--espaco-topo, 230px) 10px 96px;
+      padding: var(--espaco-topo, 220px) 10px 96px;
       font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
     body.meses-recolhido {
-      --espaco-topo: 96px;
+      --espaco-topo: 86px;
     }
 
     .card {
@@ -48,10 +48,10 @@
       width: 100%;
       background: #0d6efd;
       color: white;
-      padding: 12px 15px;
+      padding: 10px 15px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 6px;
       align-items: center;
       z-index: 999;
       border-bottom-left-radius: 15px;
@@ -655,6 +655,10 @@
       overflow: hidden;
     }
 
+    .historico-meses-card.p-3 {
+      padding: 10px 12px !important;
+    }
+
     .meses-config {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(92px, 0.45fr);
@@ -684,10 +688,45 @@
       align-items: center;
       justify-content: space-between;
       text-align: left;
+      gap: 8px;
+    }
+
+    .historico-meses-compacto {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-width: 0;
+      margin-left: auto;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .historico-meses-compacto strong {
+      max-width: 132px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .historico-meses-mini-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+    }
+
+    .historico-meses-mini-btn:hover {
+      background: rgba(255, 255, 255, 0.28);
     }
 
     .historico-meses-conteudo {
-      margin-top: 12px;
+      margin-top: 8px;
       transition: max-height 0.2s ease, opacity 0.2s ease, margin-top 0.2s ease;
       max-height: 160px;
       opacity: 1;
@@ -907,7 +946,7 @@
 
     @media (max-width: 767px) {
       body.meses-recolhido {
-        --espaco-topo: 104px;
+        --espaco-topo: 92px;
       }
 
       .app-header {
@@ -922,6 +961,25 @@
       .app-config {
         width: calc(50% - 4px);
         justify-content: flex-end;
+      }
+
+      .historico-meses-header h6 {
+        font-size: 16px;
+      }
+
+      .historico-meses-compacto {
+        gap: 4px;
+        font-size: 12px;
+      }
+
+      .historico-meses-compacto strong {
+        max-width: 96px;
+        font-size: 12px;
+      }
+
+      .historico-meses-mini-btn {
+        width: 26px;
+        height: 26px;
       }
 
       .home-total-grid {

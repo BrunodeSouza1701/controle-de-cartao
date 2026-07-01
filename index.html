@@ -83,6 +83,15 @@
     <div class="card p-3 border-0 historico-meses-card historico-meses-topo">
       <button type="button" class="historico-meses-header" onclick="toggleMesesTopo()">
         <h6><i class="bi bi-calendar3"></i> Meses</h6>
+        <span class="historico-meses-compacto" aria-label="Navegar entre meses">
+          <span class="historico-meses-mini-btn" onclick="event.stopPropagation(); mudarMesSelecionado(-1)" title="Mês anterior">
+            <i class="bi bi-chevron-left"></i>
+          </span>
+          <strong id="mesAtualCompacto">Mês atual</strong>
+          <span class="historico-meses-mini-btn" onclick="event.stopPropagation(); mudarMesSelecionado(1)" title="Próximo mês">
+            <i class="bi bi-chevron-right"></i>
+          </span>
+        </span>
         <i id="iconeMesesTopo" class="bi bi-chevron-up"></i>
       </button>
       <div id="conteudoMesesTopo" class="historico-meses-conteudo">
@@ -648,7 +657,7 @@
     function ajustarEspacoTopo() {
       const header = document.querySelector(".app-header");
       if (!header) return;
-      document.body.style.setProperty("--espaco-topo", `${Math.ceil(header.offsetHeight + 18)}px`);
+      document.body.style.setProperty("--espaco-topo", `${Math.ceil(header.offsetHeight + 8)}px`);
     }
 
     function restaurarSecoes() {
@@ -1968,6 +1977,9 @@
       const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
       mesAtual.innerText = nomesMeses[mes] + " / " + ano;
+      if (window.mesAtualCompacto) {
+        mesAtualCompacto.innerText = `${nomesMeses[mes]} / ${ano}`;
+      }
       renderizarHistoricoMeses(compras, mes, ano, nomesMeses);
 
       compras.forEach(c => {
