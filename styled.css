@@ -454,6 +454,115 @@
       border-radius: 999px;
     }
 
+    .orcamento-card {
+      border: 1px solid #e5edf7;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    .orcamento-card.orcamento-ok {
+      border-left: 4px solid #198754;
+    }
+
+    .orcamento-card.orcamento-alerta {
+      border-left: 4px solid #ffc107;
+    }
+
+    .orcamento-card.orcamento-perigo {
+      border-left: 4px solid #dc3545;
+    }
+
+    .orcamento-grafico {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #f8fafc, #ffffff);
+      border: 1px solid #e5edf7;
+    }
+
+    .orcamento-grafico-topo {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+
+    .orcamento-grafico-topo strong {
+      color: #172033;
+      font-size: 18px;
+    }
+
+    .orcamento-grafico-barras {
+      height: 62px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: end;
+      gap: 7px;
+      padding: 4px 2px;
+    }
+
+    .orcamento-grafico-barras span {
+      display: block;
+      border-radius: 999px 999px 6px 6px;
+      background: #e2e8f0;
+      transition: 0.2s;
+    }
+
+    .orcamento-grafico.orcamento-ok .orcamento-grafico-barras span.ativo,
+    .orcamento-grafico.orcamento-ok .orcamento-grafico-linha span,
+    .orcamento-semana.orcamento-ok .orcamento-semana-barra span {
+      background: linear-gradient(180deg, #22c55e, #198754);
+    }
+
+    .orcamento-grafico.orcamento-alerta .orcamento-grafico-barras span.ativo,
+    .orcamento-grafico.orcamento-alerta .orcamento-grafico-linha span,
+    .orcamento-semana.orcamento-alerta .orcamento-semana-barra span {
+      background: linear-gradient(180deg, #ffd666, #ffc107);
+    }
+
+    .orcamento-grafico.orcamento-perigo .orcamento-grafico-barras span.ativo,
+    .orcamento-grafico.orcamento-perigo .orcamento-grafico-linha span,
+    .orcamento-semana.orcamento-perigo .orcamento-semana-barra span {
+      background: linear-gradient(180deg, #ff6b6b, #dc3545);
+    }
+
+    .orcamento-grafico-linha,
+    .orcamento-semana-barra {
+      height: 8px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .orcamento-grafico-linha span,
+    .orcamento-semana-barra span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .orcamento-semanas {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .orcamento-semana {
+      border-radius: 12px;
+      padding: 10px;
+      background: #f8fafc;
+      border: 1px solid #e5edf7;
+      font-size: 12px;
+    }
+
+    .orcamento-semana small {
+      color: #64748b;
+    }
+
     .filtro-ativo {
       background: #fff3cd;
       border-radius: 12px;
@@ -866,5 +975,9 @@
 
       .historico-valor {
         font-size: 11px;
+      }
+
+      .orcamento-semanas {
+        grid-template-columns: 1fr;
       }
     }

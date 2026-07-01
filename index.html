@@ -335,6 +335,11 @@
             <select id="orcamentoCategoria" class="form-select mb-2"></select>
             <input id="orcamentoDescricao" class="form-control mb-2 d-none" placeholder="Descrição para acompanhar">
             <input id="orcamentoValor" class="form-control mb-2" placeholder="Valor do orçamento" inputmode="decimal" pattern="[0-9,.]*" oninput="formatarValor(this)">
+            <select id="orcamentoDistribuicao" class="form-select mb-2" onchange="atualizarCampoOrcamento()">
+              <option value="mensal">Controlar pelo total do mês</option>
+              <option value="semanal">Distribuir por semanas</option>
+            </select>
+            <input id="orcamentoSemanas" type="number" min="1" max="8" class="form-control mb-2 d-none" placeholder="Quantidade de semanas">
             <button type="button" onclick="salvarOrcamento()" class="btn btn-outline-warning w-100 rounded-pill">
               <i class="bi bi-plus-circle"></i> Salvar orçamento
             </button>
@@ -860,17 +865,26 @@
 
     function atualizarCampoOrcamento() {
       const porDescricao = orcamentoTipoAlvo.value === "descricao";
+      const porSemana = orcamentoDistribuicao.value === "semanal";
       orcamentoCategoria.classList.toggle("d-none", porDescricao);
       orcamentoDescricao.classList.toggle("d-none", !porDescricao);
+      orcamentoSemanas.classList.toggle("d-none", !porSemana);
     }
 
     async function salvarOrcamento() {
       const valor = converterValorExcel(orcamentoValor.value);
       const alvoTipo = orcamentoTipoAlvo.value;
       const alvo = alvoTipo === "categoria" ? orcamentoCategoria.value : orcamentoDescricao.value.trim();
+      const distribuicao = orcamentoDistribuicao.value === "semanal" ? "semanal" : "mensal";
+      const semanas = distribuicao === "semanal" ? parseInt(orcamentoSemanas.value, 10) : 0;
 
       if (!alvo || !valor || valor <= 0) {
         await avisoApp("Orçamento incompleto", "Informe o alvo e um valor de orçamento válido.");
+        return;
+      }
+
+      if (distribuicao === "semanal" && (!Number.isFinite(semanas) || semanas < 1 || semanas > 8)) {
+        await avisoApp("Semanas inválidas", "Informe uma quantidade de semanas entre 1 e 8.");
         return;
       }
 
@@ -880,13 +894,16 @@
       if (existente) {
         existente.valor = valor;
         existente.alvo = alvo;
+        existente.distribuicao = distribuicao;
+        existente.semanas = semanas;
       } else {
-        orcamentos.push({ id: Date.now(), tipo: alvoTipo, alvo, valor });
+        orcamentos.push({ id: Date.now(), tipo: alvoTipo, alvo, valor, distribuicao, semanas });
       }
 
       salvarOrcamentos(orcamentos);
       orcamentoDescricao.value = "";
       orcamentoValor.value = "";
+      orcamentoSemanas.value = "";
       mostrar();
       await avisoApp("Orçamento salvo", "O limite foi atualizado.");
     }
@@ -913,6 +930,107 @@
       if (percentual >= 90) return { classe: "bg-warning", texto: "Próximo do limite" };
       return { classe: "bg-success", texto: "Dentro do limite" };
     }
+
+    function classeOrcamentoVisual(status) {
+      if (status.classe === "bg-danger") return "orcamento-perigo";
+      if (status.classe === "bg-orange" || status.classe === "bg-warning") return "orcamento-alerta";
+      return "orcamento-ok";
+    }
+
+    function semanasDoMes(ano, mes, quantidadeSemanas) {
+      const totalDias = new Date(ano, mes + 1, 0).getDate();
+      const tamanhoSemana = Math.ceil(totalDias / quantidadeSemanas);
+      const semanas = [];
+
+      for (let indice = 0; indice < quantidadeSemanas; indice++) {
+        const inicio = indice * tamanhoSemana + 1;
+        const fim = Math.min((indice + 1) * tamanhoSemana, totalDias);
+        if (inicio <= totalDias) {
+          semanas.push({ indice, inicio, fim, consumido: 0 });
+        }
+      }
+
+      return semanas;
+    }
+
+    function adicionarConsumoSemanal(semanas, lancamento, ano, mes, valor) {
+      const data = lancamento.data instanceof Date ? lancamento.data : new Date(lancamento.data);
+      const dia = data.getFullYear() === ano && data.getMonth() === mes ? data.getDate() : 1;
+      const semana = semanas.find(item => dia >= item.inicio && dia <= item.fim) || semanas[0];
+      if (semana) semana.consumido += valor;
+    }
+
+    function calcularConsumoOrcamento(orcamento, lancamentos, ano, mes) {
+      const semanasConfiguradas = parseInt(orcamento.semanas, 10);
+      const usarSemanas = orcamento.distribuicao === "semanal" && Number.isFinite(semanasConfiguradas) && semanasConfiguradas > 0;
+      const semanas = usarSemanas ? semanasDoMes(ano, mes, Math.min(semanasConfiguradas, 8)) : [];
+      let consumido = 0;
+
+      lancamentos.forEach(lancamento => {
+        const corresponde = orcamento.tipo === "categoria"
+          ? normalizarTexto(lancamento.tipo) === normalizarTexto(orcamento.alvo)
+          : normalizarTexto(lancamento.descricao).includes(normalizarTexto(orcamento.alvo));
+
+        if (!corresponde) return;
+
+        consumido += lancamento.valor;
+        if (usarSemanas) {
+          adicionarConsumoSemanal(semanas, lancamento, ano, mes, lancamento.valor);
+        }
+      });
+
+      return { consumido, semanas, usarSemanas };
+    }
+
+    function renderizarGraficoOrcamento(percentual, status) {
+      const limitado = Math.min(Math.max(percentual, 0), 100);
+      const barras = [18, 34, 52, 70, 88].map((altura, indice) => {
+        const ativa = limitado >= (indice + 1) * 20;
+        return `<span class="${ativa ? "ativo" : ""}" style="height:${altura}%"></span>`;
+      }).join("");
+
+      return `
+        <div class="orcamento-grafico ${classeOrcamentoVisual(status)}">
+          <div class="orcamento-grafico-topo">
+            <span>Uso do orçamento</span>
+            <strong>${limitado.toFixed(0)}%</strong>
+          </div>
+          <div class="orcamento-grafico-barras">${barras}</div>
+          <div class="orcamento-grafico-linha">
+            <span style="width:${limitado}%"></span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderizarSemanasOrcamento(semanas, limiteSemanal) {
+      if (!semanas.length) return "";
+
+      return `
+        <div class="orcamento-semanas">
+          ${semanas.map(semana => {
+            const statusSemana = statusOrcamento(semana.consumido, limiteSemanal);
+            const percentualSemana = limiteSemanal > 0 ? Math.min((semana.consumido / limiteSemanal) * 100, 100) : 0;
+
+            return `
+              <div class="orcamento-semana ${classeOrcamentoVisual(statusSemana)}">
+                <div class="d-flex justify-content-between gap-2">
+                  <strong>Semana ${semana.indice + 1}</strong>
+                  <small>${semana.inicio}-${semana.fim}</small>
+                </div>
+                <small>${statusSemana.texto}</small>
+                <div class="orcamento-semana-barra"><span style="width:${percentualSemana}%"></span></div>
+                <div class="small d-flex justify-content-between">
+                  <span>${semana.consumido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  <span>${limiteSemanal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
     function obterFechamentosCartao() {
       return JSON.parse(localStorage.getItem("fechamentosCartao")) || {
         global: {},
@@ -2083,28 +2201,28 @@ ${num === 1 ? `
 
       const orcamentos = obterOrcamentos();
       orcamentos.forEach(orcamento => {
-        let consumido = 0;
-
-        if (orcamento.tipo === "categoria") {
-          consumido = resumo[orcamento.alvo] || 0;
-        } else {
-          consumido = lancamentos.reduce((soma, lancamento) =>
-            normalizarTexto(lancamento.descricao).includes(normalizarTexto(orcamento.alvo))
-              ? soma + lancamento.valor
-              : soma,
-            0
-          );
-        }
-
+        const { consumido, semanas, usarSemanas } = calcularConsumoOrcamento(orcamento, lancamentos, ano, mes);
         const percentual = orcamento.valor > 0 ? Math.min((consumido / orcamento.valor) * 100, 100) : 0;
         const status = statusOrcamento(consumido, orcamento.valor);
+        const limiteSemanal = usarSemanas ? orcamento.valor / semanas.length : 0;
+        const piorSemana = usarSemanas
+          ? semanas
+            .map(semana => ({ semana, status: statusOrcamento(semana.consumido, limiteSemanal) }))
+            .sort((a, b) => {
+              const peso = { "bg-danger": 3, "bg-orange": 2, "bg-warning": 2, "bg-success": 1 };
+              return (peso[b.status.classe] || 0) - (peso[a.status.classe] || 0);
+            })[0]
+          : null;
+        const detalheSemanal = usarSemanas
+          ? ` · ${semanas.length} semanas · limite semanal R$ ${limiteSemanal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}${piorSemana && piorSemana.status.classe !== "bg-success" ? ` · Semana ${piorSemana.semana.indice + 1}: ${piorSemana.status.texto}` : ""}`
+          : "";
         let li = document.createElement("li");
-        li.className = "list-group-item";
+        li.className = `list-group-item orcamento-card ${classeOrcamentoVisual(status)}`;
         li.innerHTML = `
           <div class="d-flex justify-content-between align-items-start gap-2">
             <div>
               <strong>${orcamento.alvo}</strong>
-              <small class="d-block text-muted">${orcamento.tipo === "categoria" ? "Categoria" : "Descrição"} · ${status.texto}</small>
+              <small class="d-block text-muted">${orcamento.tipo === "categoria" ? "Categoria" : "Descrição"} · ${status.texto}${detalheSemanal}</small>
             </div>
             <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" onclick="excluirOrcamento(${orcamento.id})">
               <i class="bi bi-trash"></i>
@@ -2114,9 +2232,8 @@ ${num === 1 ? `
             <span>R$ ${consumido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
             <span>de R$ ${orcamento.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
           </div>
-          <div class="progress mt-2" style="height: 10px;">
-            <div class="progress-bar ${status.classe}" style="width: ${percentual}%"></div>
-          </div>
+          ${renderizarGraficoOrcamento(percentual, status)}
+          ${usarSemanas ? renderizarSemanasOrcamento(semanas, limiteSemanal) : ""}
         `;
         resumoOrcamentos.appendChild(li);
       });
