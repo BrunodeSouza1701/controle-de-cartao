@@ -2829,8 +2829,31 @@ ${num === 1 ? `
     setupAuthGate();
 
     if ("serviceWorker" in navigator) {
+      let recarregouPorAtualizacao = false;
+
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (recarregouPorAtualizacao) return;
+        recarregouPorAtualizacao = true;
+        window.location.reload();
+      });
+
       navigator.serviceWorker.register("./sw.js")
-        .then(() => console.log("SW ok"))
+        .then(registro => {
+          registro.update();
+          if (registro.waiting) {
+            registro.waiting.postMessage("SKIP_WAITING");
+          }
+          registro.addEventListener("updatefound", () => {
+            const novoWorker = registro.installing;
+            if (!novoWorker) return;
+            novoWorker.addEventListener("statechange", () => {
+              if (novoWorker.state === "installed" && navigator.serviceWorker.controller) {
+                novoWorker.postMessage("SKIP_WAITING");
+              }
+            });
+          });
+          console.log("SW ok");
+        })
         .catch(err => console.log("Erro:", err));
     }
 
