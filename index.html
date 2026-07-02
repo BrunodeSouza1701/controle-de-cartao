@@ -806,6 +806,8 @@
         modalEntrada.classList.add("d-none");
         modalEntrada.value = "";
         modalEntrada.onkeydown = null;
+        modalTextoArea.classList.add("d-none");
+        modalTextoArea.value = "";
 
         modalApp.classList.remove("d-none");
 
@@ -832,6 +834,8 @@
         modalEntrada.type = tipo;
         modalEntrada.value = valorInicial;
         modalEntrada.classList.remove("d-none");
+        modalTextoArea.classList.add("d-none");
+        modalTextoArea.value = "";
         modalEntrada.onkeydown = evento => {
           if (evento.key === "Enter") {
             evento.preventDefault();
@@ -856,6 +860,41 @@
         modalCancelar.onclick = () => {
           modalEntrada.classList.add("d-none");
           modalEntrada.onkeydown = null;
+          modalApp.classList.add("d-none");
+          resolve(null);
+        };
+      });
+    }
+
+    function entradaTextoApp({ titulo, mensagem, valorInicial = "", confirmarTexto = "Salvar", cancelarTexto = "Cancelar" }) {
+      return new Promise(resolve => {
+        modalTitulo.innerText = titulo;
+        modalMensagem.innerText = mensagem;
+        modalConfirmar.innerText = confirmarTexto;
+        modalCancelar.innerText = cancelarTexto;
+        modalCancelar.classList.remove("d-none");
+
+        modalEntrada.classList.add("d-none");
+        modalEntrada.value = "";
+        modalEntrada.onkeydown = null;
+        modalTextoArea.value = valorInicial;
+        modalTextoArea.classList.remove("d-none");
+
+        modalApp.classList.remove("d-none");
+        setTimeout(() => {
+          modalTextoArea.focus();
+          modalTextoArea.select();
+        }, 50);
+
+        modalConfirmar.onclick = () => {
+          const valor = modalTextoArea.value.trim();
+          modalTextoArea.classList.add("d-none");
+          modalApp.classList.add("d-none");
+          resolve(valor);
+        };
+
+        modalCancelar.onclick = () => {
+          modalTextoArea.classList.add("d-none");
           modalApp.classList.add("d-none");
           resolve(null);
         };
@@ -1856,6 +1895,31 @@
       mostrar();
     }
 
+    async function editarObservacaoCompra(id) {
+      const compras = JSON.parse(localStorage.getItem("compras")) || [];
+      const compra = compras.find(c => c.id == id);
+
+      if (!compra) return;
+
+      const observacaoAtualizada = await entradaTextoApp({
+        titulo: "Observação",
+        mensagem: `Escreva uma observação para "${compra.descricao}". Para limpar, deixe o campo vazio.`,
+        valorInicial: compra.observacao || "",
+        confirmarTexto: "Salvar"
+      });
+
+      if (observacaoAtualizada === null) return;
+
+      if (observacaoAtualizada) {
+        compra.observacao = observacaoAtualizada;
+      } else {
+        delete compra.observacao;
+      }
+
+      persistSet("compras", JSON.stringify(compras));
+      mostrar();
+    }
+
     function moverCompra(id, direcao) {
       const compras = JSON.parse(localStorage.getItem("compras")) || [];
       const compraAtual = compras.find(c => c.id == id);
@@ -2177,7 +2241,7 @@
   <strong>${c.descricao}</strong>
   ${estaCancelada ? `<span class="badge bg-danger-subtle text-danger ms-1">Estornada</span>` : ""}
   <small>${c.tipo}</small>
-  ${c.observacao ? `<small class="d-block text-muted"><i class="bi bi-chat-left-text"></i> ${c.observacao}</small>` : ""}
+  ${c.observacao ? `<small class="d-block text-muted"><i class="bi bi-chat-left-text"></i> ${escapeHTML(c.observacao)}</small>` : ""}
   ${estaCancelada ? `
     <small class="d-block text-danger">
       Motivo: ${textoMotivoCancelamento(c)}${textoDataCancelamento(c) ? ` · ${textoDataCancelamento(c)}` : ""}
@@ -2229,6 +2293,9 @@ ${num === 1 ? `
     <i class="bi bi-x-octagon"></i>
   </button>
   `}
+  <button class="btn btn-sm btn-outline-secondary" title="Observação" onclick="editarObservacaoCompra('${c.id}')">
+    <i class="bi bi-chat-left-text"></i>
+  </button>
   <button class="btn btn-sm btn-danger" title="Excluir" onclick="deletar('${c.id}')">
     <i class="bi bi-trash"></i>
   </button>
@@ -2887,6 +2954,7 @@ ${num === 1 ? `
       <h6 id="modalTitulo" class="fw-bold mb-2"></h6>
       <p id="modalMensagem" class="text-muted mb-3"></p>
       <input id="modalEntrada" class="form-control mb-3 d-none" type="text">
+      <textarea id="modalTextoArea" class="form-control mb-3 d-none" rows="4"></textarea>
       <div class="d-flex gap-2">
         <button id="modalCancelar" type="button" class="btn btn-outline-secondary w-100 rounded-pill">
           Cancelar
