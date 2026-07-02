@@ -1052,6 +1052,33 @@
       return Number.isNaN(data.getTime()) ? "" : data.toLocaleDateString("pt-BR");
     }
 
+    function controlesCompra(compra) {
+      return Array.isArray(compra?.controles)
+        ? compra.controles.filter(controle => controle && Number(controle.valor) > 0 && controle.alvo)
+        : [];
+    }
+
+    function totalControlesCompra(compra) {
+      return controlesCompra(compra).reduce((soma, controle) => soma + Number(controle.valor || 0), 0);
+    }
+
+    function renderizarControlesCompra(compra) {
+      const controles = controlesCompra(compra);
+      if (!controles.length) return "";
+
+      return `
+        <div class="controles-compra">
+          <small class="text-muted d-block"><i class="bi bi-sliders"></i> Controles</small>
+          ${controles.map(controle => `
+            <span class="controle-compra-chip">
+              ${escapeHTML(controle.alvo)}
+              <strong>${formatarMoeda(controle.valor)}</strong>
+            </span>
+          `).join("")}
+        </div>
+      `;
+    }
+
     function classeOrcamentoVisual(status) {
       if (status.classe === "bg-danger") return "orcamento-perigo";
       if (status.classe === "bg-orange" || status.classe === "bg-warning") return "orcamento-alerta";
@@ -1920,6 +1947,134 @@
       mostrar();
     }
 
+    function fecharModalApp() {
+      modalApp.classList.add("d-none");
+      modalMensagem.innerHTML = "";
+      modalEntrada.classList.add("d-none");
+      modalTextoArea.classList.add("d-none");
+      modalEntrada.onkeydown = null;
+    }
+
+    function removerControleCompra(id, controleId) {
+      const compras = JSON.parse(localStorage.getItem("compras")) || [];
+      const compra = compras.find(c => c.id == id);
+
+      if (!compra) return;
+
+      compra.controles = controlesCompra(compra).filter(controle => controle.id != controleId);
+      if (!compra.controles.length) {
+        delete compra.controles;
+      }
+
+      persistSet("compras", JSON.stringify(compras));
+      fecharModalApp();
+      mostrar();
+    }
+
+    async function gerenciarControlesCompra(id) {
+      const compras = JSON.parse(localStorage.getItem("compras")) || [];
+      const compra = compras.find(c => c.id == id);
+
+      if (!compra) return;
+
+      const controles = controlesCompra(compra);
+      const totalRateado = totalControlesCompra(compra);
+      const restante = Math.max(Number(compra.valor || 0) - totalRateado, 0);
+
+      modalTitulo.innerText = "Controle do lançamento";
+      modalMensagem.innerHTML = `
+        <div class="text-start">
+          <p class="text-muted small mb-3">
+            Use para separar parte de "${escapeHTML(compra.descricao)}" em um controle específico, como Doces, Padaria ou Limpeza.
+          </p>
+          <div class="controle-rateio-resumo">
+            <span>Total da compra: <strong>${formatarMoeda(compra.valor)}</strong></span>
+            <span>Já controlado: <strong>${formatarMoeda(totalRateado)}</strong></span>
+            <span>Restante: <strong>${formatarMoeda(restante)}</strong></span>
+          </div>
+          ${controles.length ? `
+            <div class="controle-rateio-lista">
+              ${controles.map(controle => `
+                <div class="controle-rateio-item">
+                  <div>
+                    <strong>${escapeHTML(controle.alvo)}</strong>
+                    <small>${formatarMoeda(controle.valor)}${controle.observacao ? ` · ${escapeHTML(controle.observacao)}` : ""}</small>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-danger" title="Remover controle" onclick="removerControleCompra('${compra.id}', '${controle.id}')">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              `).join("")}
+            </div>
+          ` : `<p class="text-muted small mb-3">Nenhum controle separado ainda.</p>`}
+          <label class="form-label mb-1">Controle/descrição</label>
+          <input id="controleAlvo" class="form-control mb-2" placeholder="Ex.: Doces">
+          <label class="form-label mb-1">Valor</label>
+          <input id="controleValor" class="form-control mb-2" inputmode="decimal" placeholder="Ex.: 20,00" oninput="formatarValor(this)">
+          <label class="form-label mb-1">Observação opcional</label>
+          <input id="controleObservacao" class="form-control" placeholder="Ex.: chocolate, sobremesa">
+        </div>
+      `;
+
+      modalEntrada.classList.add("d-none");
+      modalTextoArea.classList.add("d-none");
+      modalCancelar.classList.remove("d-none");
+      modalCancelar.innerText = "Fechar";
+      modalConfirmar.innerText = "Adicionar";
+      modalApp.classList.remove("d-none");
+
+      const campoAlvo = document.getElementById("controleAlvo");
+      const campoValor = document.getElementById("controleValor");
+      const campoObservacao = document.getElementById("controleObservacao");
+      setTimeout(() => campoAlvo?.focus(), 50);
+
+      const confirmado = await new Promise(resolve => {
+        modalConfirmar.onclick = () => resolve(true);
+        modalCancelar.onclick = () => resolve(false);
+      });
+
+      if (!confirmado) {
+        fecharModalApp();
+        return;
+      }
+
+      const alvo = campoAlvo.value.trim();
+      const valor = converterValorExcel(campoValor.value);
+      const observacao = campoObservacao.value.trim();
+
+      if (!alvo) {
+        await avisoApp("Controle obrigatório", "Informe a descrição do controle, por exemplo: Doces.");
+        return;
+      }
+
+      if (!valor || valor <= 0) {
+        await avisoApp("Valor inválido", "Informe um valor maior que zero para o controle.");
+        return;
+      }
+
+      if (valor > restante) {
+        const confirmadoExcedente = await abrirModalApp({
+          titulo: "Valor acima do restante",
+          mensagem: `O valor informado passa do restante da compra (${formatarMoeda(restante)}). Deseja salvar mesmo assim?`,
+          confirmarTexto: "Salvar"
+        });
+
+        if (!confirmadoExcedente) return;
+      }
+
+      compra.controles = controlesCompra(compra);
+      compra.controles.push({
+        id: Date.now(),
+        alvo,
+        valor,
+        observacao
+      });
+
+      persistSet("compras", JSON.stringify(compras));
+      fecharModalApp();
+      mostrar();
+    }
+
     function moverCompra(id, direcao) {
       const compras = JSON.parse(localStorage.getItem("compras")) || [];
       const compraAtual = compras.find(c => c.id == id);
@@ -2179,6 +2334,7 @@
       let resumoCartao = {};
       let resumoAVista = {};
       let lancamentos = [];
+      let lancamentosOrcamento = [];
 
       let mes = parseInt(mesFiltro.value);
       let ano = parseInt(anoFiltro.value);
@@ -2242,6 +2398,7 @@
   ${estaCancelada ? `<span class="badge bg-danger-subtle text-danger ms-1">Estornada</span>` : ""}
   <small>${c.tipo}</small>
   ${c.observacao ? `<small class="d-block text-muted"><i class="bi bi-chat-left-text"></i> ${escapeHTML(c.observacao)}</small>` : ""}
+  ${renderizarControlesCompra(c)}
   ${estaCancelada ? `
     <small class="d-block text-danger">
       Motivo: ${textoMotivoCancelamento(c)}${textoDataCancelamento(c) ? ` · ${textoDataCancelamento(c)}` : ""}
@@ -2289,6 +2446,9 @@ ${num === 1 ? `
   <button class="btn btn-sm btn-outline-success" title="Multiplicar por meses" onclick="multiplicarCompra('${c.id}')">
     <i class="bi bi-calendar-plus"></i>
   </button>
+  <button class="btn btn-sm btn-outline-secondary" title="Separar controle/orçamento" onclick="gerenciarControlesCompra('${c.id}')">
+    <i class="bi bi-sliders"></i>
+  </button>
   <button class="btn btn-sm btn-outline-danger" title="Cancelar/estornar" onclick="cancelarCompra('${c.id}')">
     <i class="bi bi-x-octagon"></i>
   </button>
@@ -2318,7 +2478,30 @@ ${num === 1 ? `
               ordem: ordemCompra(c)
             });
 
+            lancamentosOrcamento.push({
+              data: base,
+              valor: valorParcelaContabil,
+              descricao: c.descricao,
+              tipo: c.tipo,
+              cartao: c.cartao,
+              controleManual: false
+            });
+
             if (!estaCancelada) {
+              controlesCompra(c).forEach(controle => {
+                const valorControleParcela = Math.round(Number(controle.valor || 0) / totalParcelas * 100) / 100;
+                lancamentosOrcamento.push({
+                  data: base,
+                  valor: valorControleParcela,
+                  descricao: controle.alvo,
+                  tipo: "Controle",
+                  cartao: c.cartao,
+                  observacao: controle.observacao || "",
+                  controleManual: true,
+                  compraOrigem: c.descricao
+                });
+              });
+
               total += valorParcela;
               const cartaoPadronizadoMes = nomeCartaoPadronizado(c.cartao);
               if (cartaoPadronizadoMes === "Itau" || cartaoPadronizadoMes === "Carrefour") {
@@ -2450,7 +2633,7 @@ ${num === 1 ? `
 
       const orcamentos = obterOrcamentos();
       orcamentos.forEach(orcamento => {
-        const { consumido, semanas, usarSemanas } = calcularConsumoOrcamento(orcamento, lancamentos, ano, mes);
+        const { consumido, semanas, usarSemanas } = calcularConsumoOrcamento(orcamento, lancamentosOrcamento, ano, mes);
         const percentual = orcamento.valor > 0 ? Math.min((consumido / orcamento.valor) * 100, 100) : 0;
         const status = statusOrcamento(consumido, orcamento.valor);
         const limiteSemanal = usarSemanas ? orcamento.valor / semanas.length : 0;

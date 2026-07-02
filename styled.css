@@ -40,6 +40,68 @@
       border-radius: 10px;
     }
 
+    .controles-compra {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 6px;
+      max-width: 100%;
+    }
+
+    .controles-compra > small {
+      flex-basis: 100%;
+    }
+
+    .controle-compra-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      max-width: 100%;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #eef5ff;
+      color: #1d4f91;
+      font-size: 0.78rem;
+      line-height: 1.2;
+    }
+
+    .controle-compra-chip strong {
+      white-space: nowrap;
+    }
+
+    .controle-rateio-resumo {
+      display: grid;
+      gap: 4px;
+      padding: 10px;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      background: #f5f8ff;
+      color: #334155;
+      font-size: 0.9rem;
+    }
+
+    .controle-rateio-lista {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .controle-rateio-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .controle-rateio-item small {
+      display: block;
+      color: #64748b;
+    }
+
     /* 🔥 NOVO - HEADER APP */
     .app-header {
       position: fixed;
