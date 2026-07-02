@@ -143,6 +143,8 @@
 
               <input id="data" type="date" class="form-control mb-3">
 
+              <textarea id="observacao" class="form-control mb-3" rows="2" placeholder="Observação"></textarea>
+
               <div class="d-flex gap-2">
 
                 <button id="btnSalvar" onclick="salvar()" class="btn btn-primary w-100 rounded-pill">
@@ -349,9 +351,14 @@
               <option value="semanal">Distribuir por semanas</option>
             </select>
             <input id="orcamentoSemanas" type="number" min="1" max="8" class="form-control mb-2 d-none" placeholder="Quantidade de semanas">
-            <button type="button" onclick="salvarOrcamento()" class="btn btn-outline-warning w-100 rounded-pill">
+            <div class="d-flex gap-2">
+            <button id="btnSalvarOrcamento" type="button" onclick="salvarOrcamento()" class="btn btn-outline-warning w-100 rounded-pill">
               <i class="bi bi-plus-circle"></i> Salvar orçamento
             </button>
+            <button id="btnCancelarOrcamento" type="button" onclick="cancelarEdicaoOrcamento()" class="btn btn-outline-secondary w-100 rounded-pill d-none">
+              Cancelar
+            </button>
+            </div>
           </div>
         </div>
 
@@ -872,6 +879,8 @@
       persistSet("orcamentos", JSON.stringify(lista));
     }
 
+    let editandoOrcamentoId = null;
+
     function atualizarCampoOrcamento() {
       const porDescricao = orcamentoTipoAlvo.value === "descricao";
       const porSemana = orcamentoDistribuicao.value === "semanal";
@@ -898,9 +907,12 @@
       }
 
       const orcamentos = obterOrcamentos();
-      const existente = orcamentos.find(item => item.tipo === alvoTipo && normalizarTexto(item.alvo) === normalizarTexto(alvo));
+      const existente = editandoOrcamentoId !== null
+        ? orcamentos.find(item => item.id == editandoOrcamentoId)
+        : orcamentos.find(item => item.tipo === alvoTipo && normalizarTexto(item.alvo) === normalizarTexto(alvo));
 
       if (existente) {
+        existente.tipo = alvoTipo;
         existente.valor = valor;
         existente.alvo = alvo;
         existente.distribuicao = distribuicao;
@@ -913,8 +925,55 @@
       orcamentoDescricao.value = "";
       orcamentoValor.value = "";
       orcamentoSemanas.value = "";
+      editandoOrcamentoId = null;
+      btnSalvarOrcamento.innerHTML = '<i class="bi bi-plus-circle"></i> Salvar orçamento';
+      btnCancelarOrcamento.classList.add("d-none");
       mostrar();
       await avisoApp("Orçamento salvo", "O limite foi atualizado.");
+    }
+
+    function editarOrcamento(id) {
+      const orcamento = obterOrcamentos().find(item => item.id == id);
+      if (!orcamento) return;
+
+      editandoOrcamentoId = orcamento.id;
+      orcamentoTipoAlvo.value = orcamento.tipo || "categoria";
+
+      if (orcamento.tipo === "categoria") {
+        orcamentoCategoria.value = orcamento.alvo;
+        orcamentoDescricao.value = "";
+      } else {
+        orcamentoDescricao.value = orcamento.alvo || "";
+      }
+
+      orcamentoValor.value = Number(orcamento.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+      orcamentoDistribuicao.value = orcamento.distribuicao === "semanal" ? "semanal" : "mensal";
+      orcamentoSemanas.value = orcamento.distribuicao === "semanal" ? (orcamento.semanas || "") : "";
+      atualizarCampoOrcamento();
+
+      btnSalvarOrcamento.innerHTML = '<i class="bi bi-check2-circle"></i> Atualizar orçamento';
+      btnCancelarOrcamento.classList.remove("d-none");
+
+      const secao = document.getElementById("secaoOrcamentoConfig");
+      const icone = document.getElementById("iconeOrcamentoConfig");
+      if (secao?.classList.contains("oculto")) {
+        secao.classList.remove("oculto");
+        icone?.classList.remove("bi-chevron-down");
+        icone?.classList.add("bi-chevron-up");
+        localStorage.setItem("secaoOrcamentoConfig", "aberto");
+      }
+      secao?.scrollIntoView({ behavior: "auto", block: "start" });
+    }
+
+    function cancelarEdicaoOrcamento() {
+      editandoOrcamentoId = null;
+      orcamentoDescricao.value = "";
+      orcamentoValor.value = "";
+      orcamentoSemanas.value = "";
+      orcamentoDistribuicao.value = "mensal";
+      atualizarCampoOrcamento();
+      btnSalvarOrcamento.innerHTML = '<i class="bi bi-plus-circle"></i> Salvar orçamento';
+      btnCancelarOrcamento.classList.add("d-none");
     }
 
     async function excluirOrcamento(id) {
@@ -1563,6 +1622,7 @@
         valor: valorConvertido,
         parcelas: parcelas,
         data: data.value,
+        observacao: observacao.value.trim(),
         ordem: editandoIndex !== null && mesmaDataCompra(compras[editandoIndex], { data: data.value })
           ? ordemCompra(compras[editandoIndex])
           : proximaOrdemCompra(compras, normalizarData(data.value))
@@ -1606,6 +1666,7 @@
       descricao.value = "";
       valor.value = "";
       parcelas.value = "";
+      observacao.value = "";
       const _hoje = new Date();
       data.value = `${_hoje.getFullYear()}-${String(_hoje.getMonth() + 1).padStart(2, '0')}-${String(_hoje.getDate()).padStart(2, '0')}`;
 
@@ -1631,6 +1692,7 @@
       valor.value = c.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
       parcelas.value = c.parcelas;
       data.value = c.data;
+      observacao.value = c.observacao || "";
 
       editandoIndex = i;
 
@@ -1653,7 +1715,8 @@
         descricao: descricao.value.trim(),
         valor: valorInput() || 0,
         parcelas: parcelasInput(),
-        data: data.value
+        data: data.value,
+        observacao: observacao.value.trim()
       };
     }
 
@@ -2114,6 +2177,7 @@
   <strong>${c.descricao}</strong>
   ${estaCancelada ? `<span class="badge bg-danger-subtle text-danger ms-1">Estornada</span>` : ""}
   <small>${c.tipo}</small>
+  ${c.observacao ? `<small class="d-block text-muted"><i class="bi bi-chat-left-text"></i> ${c.observacao}</small>` : ""}
   ${estaCancelada ? `
     <small class="d-block text-danger">
       Motivo: ${textoMotivoCancelamento(c)}${textoDataCancelamento(c) ? ` · ${textoDataCancelamento(c)}` : ""}
@@ -2181,6 +2245,7 @@ ${num === 1 ? `
               descricao: c.descricao,
               tipo: c.tipo,
               cartao: c.cartao,
+              observacao: c.observacao || "",
               cancelada: estaCancelada,
               motivoCancelamento: c.motivoCancelamento || "",
               ordem: ordemCompra(c)
@@ -2241,6 +2306,7 @@ ${num === 1 ? `
         ? lancamentosFiltrados.filter(l => {
           const camposBusca = [
             l.descricao,
+            l.observacao,
             nomeCartaoExibicao(l.cartao),
             l.dataTexto
           ].map(campo => normalizarTexto(campo || "")).join(" ");
@@ -2340,9 +2406,14 @@ ${num === 1 ? `
               <strong>${orcamento.alvo}</strong>
               <small class="d-block text-muted">${orcamento.tipo === "categoria" ? "Categoria" : "Descrição"} · ${status.texto}${detalheSemanal}</small>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" onclick="excluirOrcamento(${orcamento.id})">
-              <i class="bi bi-trash"></i>
-            </button>
+            <div class="d-flex gap-1">
+              <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" title="Editar orçamento" onclick="editarOrcamento(${orcamento.id})">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" title="Excluir orçamento" onclick="excluirOrcamento(${orcamento.id})">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
           </div>
           <div class="small mt-2 d-flex justify-content-between">
             <span>R$ ${consumido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
