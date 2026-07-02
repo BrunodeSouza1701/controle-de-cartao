@@ -940,6 +940,20 @@
       return { classe: "bg-success", texto: "Dentro do limite" };
     }
 
+    function compraCancelada(compra) {
+      return compra?.cancelada === true;
+    }
+
+    function textoMotivoCancelamento(compra) {
+      return compra?.motivoCancelamento?.toString().trim() || "Sem motivo informado";
+    }
+
+    function textoDataCancelamento(compra) {
+      if (!compra?.dataCancelamento) return "";
+      const data = new Date(compra.dataCancelamento);
+      return Number.isNaN(data.getTime()) ? "" : data.toLocaleDateString("pt-BR");
+    }
+
     function classeOrcamentoVisual(status) {
       if (status.classe === "bg-danger") return "orcamento-perigo";
       if (status.classe === "bg-orange" || status.classe === "bg-warning") return "orcamento-alerta";
@@ -1554,6 +1568,12 @@
           : proximaOrdemCompra(compras, normalizarData(data.value))
       };
 
+      if (editandoIndex !== null && compraCancelada(compras[editandoIndex])) {
+        obj.cancelada = true;
+        obj.motivoCancelamento = compras[editandoIndex].motivoCancelamento || "";
+        obj.dataCancelamento = compras[editandoIndex].dataCancelamento || "";
+      }
+
 
       if (editandoIndex !== null) {
         compras[editandoIndex] = obj;
@@ -1711,6 +1731,64 @@
 
       let compras = JSON.parse(localStorage.getItem("compras")) || [];
       compras = compras.filter(c => c.id != id);
+      persistSet("compras", JSON.stringify(compras));
+      mostrar();
+    }
+
+    async function cancelarCompra(id) {
+      const compras = JSON.parse(localStorage.getItem("compras")) || [];
+      const compra = compras.find(c => c.id == id);
+
+      if (!compra) return;
+
+      const motivo = await entradaApp({
+        titulo: "Cancelar compra",
+        mensagem: `Informe o motivo do cancelamento/estorno de "${compra.descricao}".`,
+        valorInicial: compra.motivoCancelamento || "",
+        confirmarTexto: "Continuar"
+      });
+
+      if (motivo === null) return;
+
+      if (!motivo.trim()) {
+        await avisoApp("Motivo obrigatório", "Informe o motivo do cancelamento.");
+        return;
+      }
+
+      const confirmado = await abrirModalApp({
+        titulo: "Confirmar cancelamento",
+        mensagem: "A compra continuará na lista como estornada, mas não entrará nos totais do mês. Confirmar?",
+        confirmarTexto: "Cancelar compra"
+      });
+
+      if (!confirmado) return;
+
+      compra.cancelada = true;
+      compra.motivoCancelamento = motivo.trim();
+      compra.dataCancelamento = new Date().toISOString();
+
+      persistSet("compras", JSON.stringify(compras));
+      mostrar();
+    }
+
+    async function reativarCompra(id) {
+      const confirmado = await abrirModalApp({
+        titulo: "Reativar compra",
+        mensagem: "Deseja reativar esta compra e voltar a contabilizá-la nos totais?",
+        confirmarTexto: "Reativar"
+      });
+
+      if (!confirmado) return;
+
+      const compras = JSON.parse(localStorage.getItem("compras")) || [];
+      const compra = compras.find(c => c.id == id);
+
+      if (!compra) return;
+
+      delete compra.cancelada;
+      delete compra.motivoCancelamento;
+      delete compra.dataCancelamento;
+
       persistSet("compras", JSON.stringify(compras));
       mostrar();
     }
@@ -1884,12 +1962,16 @@
       const totaisPorMes = {};
 
       compras.forEach(c => {
+        if (compraCancelada(c)) return;
+
         let dataCompra = normalizarData(c.data);
         let partes = dataCompra.split("-");
         let base = new Date(partes[0], partes[1] - 1, partes[2]);
         let totalParcelas = normalizarParcelas(c.parcelas);
         let valorParcela = Math.round(c.valor / totalParcelas * 100) / 100;
         let competenciaBase = mesCompetenciaCompra(c.cartao, base);
+        const estaCancelada = compraCancelada(c);
+        const valorParcelaContabil = estaCancelada ? 0 : valorParcela;
 
         for (let i = 0; i < totalParcelas; i++) {
           let d = new Date(competenciaBase);
@@ -1990,6 +2072,8 @@
         let totalParcelas = normalizarParcelas(c.parcelas);
         let valorParcela = Math.round(c.valor / totalParcelas * 100) / 100;
         let competenciaBase = mesCompetenciaCompra(c.cartao, base);
+        const estaCancelada = compraCancelada(c);
+        const valorParcelaContabil = estaCancelada ? 0 : valorParcela;
 
         for (let i = 0; i < totalParcelas; i++) {
           let d = new Date(competenciaBase);
@@ -2005,20 +2089,21 @@
 
             let li = document.createElement("li");
             li.className = "list-group-item d-flex justify-content-between animate__animated animate__fadeInUp";
+            li.classList.toggle("compra-cancelada", estaCancelada);
 
             // regras de cor
             let ehAVista = totalParcelas === 1;
             let ultima = num === totalParcelas;
 
-            if (!ehAVista && num === 1) {
+            if (!estaCancelada && !ehAVista && num === 1) {
               li.style.background = "#e9ecef";
             }
 
-            if (!ehAVista && num > 1 && !ultima) {
+            if (!estaCancelada && !ehAVista && num > 1 && !ultima) {
               li.classList.add("list-group-item-success");
             }
 
-            if (!ehAVista && ultima) {
+            if (!estaCancelada && !ehAVista && ultima) {
               li.classList.add("list-group-item-warning");
             }
 
@@ -2027,11 +2112,17 @@
 <div>
   ${getIconeCartao(c.cartao)}
   <strong>${c.descricao}</strong>
+  ${estaCancelada ? `<span class="badge bg-danger-subtle text-danger ms-1">Estornada</span>` : ""}
   <small>${c.tipo}</small>
+  ${estaCancelada ? `
+    <small class="d-block text-danger">
+      Motivo: ${textoMotivoCancelamento(c)}${textoDataCancelamento(c) ? ` · ${textoDataCancelamento(c)}` : ""}
+    </small>
+  ` : ""}
 </div>
 
 <div class="text-end">
-<strong class="text-success">
+<strong class="${estaCancelada ? "text-muted text-decoration-line-through" : "text-success"}">
 R$ ${(valorParcela).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 </strong><br>
 
@@ -2050,6 +2141,11 @@ ${totalParcelas > 1 ? `
 
 ${num === 1 ? `
 <div class="acoes-compra">
+  ${estaCancelada ? `
+  <button class="btn btn-sm btn-outline-success" title="Reativar compra" onclick="reativarCompra('${c.id}')">
+    <i class="bi bi-arrow-counterclockwise"></i>
+  </button>
+  ` : `
   <button class="btn btn-sm btn-outline-primary" title="Mover para cima" onclick="moverCompra('${c.id}', -1)">
     <i class="bi bi-arrow-up"></i>
   </button>
@@ -2065,6 +2161,10 @@ ${num === 1 ? `
   <button class="btn btn-sm btn-outline-success" title="Multiplicar por meses" onclick="multiplicarCompra('${c.id}')">
     <i class="bi bi-calendar-plus"></i>
   </button>
+  <button class="btn btn-sm btn-outline-danger" title="Cancelar/estornar" onclick="cancelarCompra('${c.id}')">
+    <i class="bi bi-x-octagon"></i>
+  </button>
+  `}
   <button class="btn btn-sm btn-danger" title="Excluir" onclick="deletar('${c.id}')">
     <i class="bi bi-trash"></i>
   </button>
@@ -2077,24 +2177,28 @@ ${num === 1 ? `
               data: base,
               dataTexto: `${dia}/${mesNum}/${anoCurto}`,
               elemento: li,
-              valor: valorParcela,
+              valor: valorParcelaContabil,
               descricao: c.descricao,
               tipo: c.tipo,
               cartao: c.cartao,
+              cancelada: estaCancelada,
+              motivoCancelamento: c.motivoCancelamento || "",
               ordem: ordemCompra(c)
             });
 
-            total += valorParcela;
-            const cartaoPadronizadoMes = nomeCartaoPadronizado(c.cartao);
-            if (cartaoPadronizadoMes === "Itau" || cartaoPadronizadoMes === "Carrefour") {
-              totalPorCartaoMes[cartaoPadronizadoMes] += valorParcela;
-            }
+            if (!estaCancelada) {
+              total += valorParcela;
+              const cartaoPadronizadoMes = nomeCartaoPadronizado(c.cartao);
+              if (cartaoPadronizadoMes === "Itau" || cartaoPadronizadoMes === "Carrefour") {
+                totalPorCartaoMes[cartaoPadronizadoMes] += valorParcela;
+              }
 
-            resumo[c.tipo] = (resumo[c.tipo] || 0) + valorParcela;
+              resumo[c.tipo] = (resumo[c.tipo] || 0) + valorParcela;
+            }
 
             const cartaoResumo = nomeCartaoPadronizado(c.cartao);
 
-            if (totalParcelas > 1) {
+            if (!estaCancelada && totalParcelas > 1) {
               if (!resumoCartao[cartaoResumo]) {
                 resumoCartao[cartaoResumo] = {
                   parcelaMes: 0,
@@ -2112,7 +2216,7 @@ ${num === 1 ? `
               } else {
                 resumoCartao[cartaoResumo].andamento += valorParcela;
               }
-            } else {
+            } else if (!estaCancelada) {
               resumoAVista[cartaoResumo] = (resumoAVista[cartaoResumo] || 0) + valorParcela;
             }
           }
