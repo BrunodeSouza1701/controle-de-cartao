@@ -117,6 +117,29 @@
       overflow-wrap: anywhere;
     }
 
+    .parcelamento-condicao-ativo {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: #f8fafc;
+      color: #334155;
+      font-size: 0.9rem;
+    }
+
+    .parcelamento-condicao-badge {
+      display: inline-flex;
+      width: fit-content;
+      margin: 4px 0 0;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
     .parcelamento-detalhado-total {
       display: flex;
       justify-content: space-between;
@@ -539,6 +562,31 @@
     .grupo-parcelado-ultima {
       background: #fff3cd;
       color: #997404;
+    }
+
+    .grupo-parcelado-clicavel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .grupo-parcelado-clicavel:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+    }
+
+    .grupo-parcelado-clicavel small {
+      font-size: 0.72rem;
+      font-weight: 700;
+      opacity: 0.75;
+    }
+
+    .grupo-parcelado-ativo {
+      outline: 2px solid currentColor;
+      outline-offset: 2px;
     }
 
     .ranking-categoria {

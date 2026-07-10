@@ -461,6 +461,10 @@
                 <option value="Itau">Itaú</option>
                 <option value="Carrefour">Carrefour</option>
               </select>
+              <div
+                id="filtroCondicaoParcelamentoAtivo"
+                class="parcelamento-condicao-ativo d-none"
+              ></div>
               <ul id="listaParcelamentoDetalhado" class="list-group"></ul>
               <div class="parcelamento-detalhado-total">
                 <span>Total exibido</span>
@@ -1152,6 +1156,47 @@
 
       function filtrarCategoriaLancamento(categoria) {
         filtroTipoAtual = categoria;
+        mostrar();
+      }
+
+      function nomeCondicaoParcelamento(condicao) {
+        const nomes = {
+          parcelaMes: "Parcela do Mês",
+          andamento: "Parcelas em Andamento",
+          ultima: "Última Parcela",
+        };
+        return nomes[condicao] || "Todas as parcelas";
+      }
+
+      function classeCondicaoParcelamento(condicao) {
+        const classes = {
+          parcelaMes: "grupo-parcelado-mes",
+          andamento: "grupo-parcelado-andamento",
+          ultima: "grupo-parcelado-ultima",
+        };
+        return classes[condicao] || "";
+      }
+
+      function filtrarCondicaoParcelamento(condicao) {
+        filtroCondicaoParcelamentoDetalhado =
+          filtroCondicaoParcelamentoDetalhado === condicao ? "" : condicao;
+
+        const secao = document.getElementById("secaoParcelamentoDetalhado");
+        const icone = document.getElementById("iconeParcelamentoDetalhado");
+
+        if (secao?.classList.contains("oculto")) {
+          secao.classList.remove("oculto");
+          icone?.classList.remove("bi-chevron-down");
+          icone?.classList.add("bi-chevron-up");
+          localStorage.setItem("secaoParcelamentoDetalhado", "aberto");
+        }
+
+        mostrar();
+        secao?.scrollIntoView({ behavior: "auto", block: "start" });
+      }
+
+      function limparFiltroCondicaoParcelamento() {
+        filtroCondicaoParcelamentoDetalhado = "";
         mostrar();
       }
 
@@ -2096,6 +2141,7 @@
       let filtroCartaoAtual = "";
       let buscaLancamentoAtual = "";
       let modoPesquisaLancamento = "lancamento";
+      let filtroCondicaoParcelamentoDetalhado = "";
       let valoresOcultos = localStorage.getItem("valoresOcultos") === "true";
       let totaisVisiveisAtuais = {
         total: "0,00",
@@ -3138,6 +3184,16 @@ ${
               const cartaoResumo = nomeCartaoPadronizado(c.cartao);
 
               if (!estaCancelada && totalParcelas > 1) {
+                const compraComecouNoMesAtual =
+                  competenciaBase.getMonth() === mes &&
+                  competenciaBase.getFullYear() === ano;
+                const condicaoParcelamento =
+                  num === 1 && compraComecouNoMesAtual
+                    ? "parcelaMes"
+                    : num === totalParcelas
+                      ? "ultima"
+                      : "andamento";
+
                 parcelamentoDetalhado.push({
                   data: base,
                   dataTexto: `${dia}/${mesNum}/${anoCurto}`,
@@ -3148,6 +3204,7 @@ ${
                   parcelaAtual: num,
                   parcelas: totalParcelas,
                   valorTotal: Number(c.valor || 0),
+                  condicao: condicaoParcelamento,
                   ordem: ordemCompra(c),
                 });
 
@@ -3158,10 +3215,6 @@ ${
                     ultima: 0,
                   };
                 }
-
-                const compraComecouNoMesAtual =
-                  competenciaBase.getMonth() === mes &&
-                  competenciaBase.getFullYear() === ano;
 
                 if (num === 1 && compraComecouNoMesAtual) {
                   resumoCartao[cartaoResumo].parcelaMes += valorParcela;
@@ -3449,7 +3502,25 @@ ${
 
         let grupo = document.createElement("div");
         grupo.className = `grupo-data ${classeGrupo}`;
-        grupo.innerText = titulo;
+        grupo.classList.add("grupo-parcelado-clicavel");
+        grupo.classList.toggle(
+          "grupo-parcelado-ativo",
+          filtroCondicaoParcelamentoDetalhado === campo,
+        );
+        grupo.innerHTML = `
+          <span>${titulo}</span>
+          <small>Ver detalhes</small>
+        `;
+        grupo.onclick = () => filtrarCondicaoParcelamento(campo);
+        grupo.setAttribute("role", "button");
+        grupo.setAttribute("tabindex", "0");
+        grupo.setAttribute("title", `Mostrar ${titulo.toLowerCase()}`);
+        grupo.onkeydown = (evento) => {
+          if (evento.key === "Enter" || evento.key === " ") {
+            evento.preventDefault();
+            filtrarCondicaoParcelamento(campo);
+          }
+        };
         lista.appendChild(grupo);
 
         cartoes.forEach((cartao) => {
@@ -3471,14 +3542,40 @@ ${
         const totalDetalhado = document.getElementById(
           "totalParcelamentoDetalhado",
         );
+        const filtroCondicaoAtivo = document.getElementById(
+          "filtroCondicaoParcelamentoAtivo",
+        );
         const filtroCartao = document.getElementById(
           "filtroParcelamentoDetalhado",
         )?.value;
 
         if (!listaDetalhada || !totalDetalhado) return;
 
+        if (filtroCondicaoAtivo) {
+          filtroCondicaoAtivo.classList.toggle(
+            "d-none",
+            !filtroCondicaoParcelamentoDetalhado,
+          );
+          filtroCondicaoAtivo.innerHTML = filtroCondicaoParcelamentoDetalhado
+            ? `
+              <span>
+                <strong>Filtro:</strong>
+                ${nomeCondicaoParcelamento(filtroCondicaoParcelamentoDetalhado)}
+              </span>
+              <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" onclick="limparFiltroCondicaoParcelamento()">
+                Limpar
+              </button>
+            `
+            : "";
+        }
+
         const itens = parcelamentos
           .filter((item) => !filtroCartao || item.cartao === filtroCartao)
+          .filter(
+            (item) =>
+              !filtroCondicaoParcelamentoDetalhado ||
+              item.condicao === filtroCondicaoParcelamentoDetalhado,
+          )
           .sort((a, b) => b.data - a.data || a.ordem - b.ordem);
 
         listaDetalhada.innerHTML = "";
@@ -3486,7 +3583,9 @@ ${
         if (!itens.length) {
           const vazio = document.createElement("li");
           vazio.className = "list-group-item text-muted";
-          vazio.innerText = "Nenhuma compra parcelada encontrada.";
+          vazio.innerText = filtroCondicaoParcelamentoDetalhado
+            ? `Nenhuma compra encontrada em ${nomeCondicaoParcelamento(filtroCondicaoParcelamentoDetalhado).toLowerCase()}.`
+            : "Nenhuma compra parcelada encontrada.";
           listaDetalhada.appendChild(vazio);
           totalDetalhado.innerText = "0,00";
           return;
@@ -3504,6 +3603,9 @@ ${
             <div>
               ${getIconeCartao(item.cartao)}
               <strong>${escapeHTML(item.descricao)}</strong>
+              <span class="parcelamento-condicao-badge ${classeCondicaoParcelamento(item.condicao)}">
+                ${nomeCondicaoParcelamento(item.condicao)}
+              </span>
               <small class="d-block text-muted">${escapeHTML(item.tipo)} · ${escapeHTML(item.dataTexto)}</small>
               <small class="d-block text-muted">Total da compra: ${formatarMoeda(item.valorTotal)}</small>
             </div>
