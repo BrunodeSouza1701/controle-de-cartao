@@ -102,6 +102,45 @@
       color: #64748b;
     }
 
+    .parcelamento-detalhado-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .parcelamento-detalhado-item > div:first-child {
+      min-width: 0;
+    }
+
+    .parcelamento-detalhado-item strong {
+      overflow-wrap: anywhere;
+    }
+
+    .parcelamento-detalhado-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #eef5ff;
+      color: #153e75;
+      font-weight: 700;
+    }
+
+    .parcelamento-detalhado-total span {
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .parcelamento-detalhado-total strong,
+    .parcelamento-detalhado-total strong span {
+      color: #0f766e;
+      font-weight: 800;
+    }
+
     /* 🔥 NOVO - HEADER APP */
     .app-header {
       position: fixed;
