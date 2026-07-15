@@ -6,6 +6,6 @@
     "pages:deploy": "npm run build && npx wrangler pages deploy . --project-name=controle-cartao"
   },
   "devDependencies": {
-    "wrangler": "^3.114.0"
+    "wrangler": "^4.110.0"
   }
 }

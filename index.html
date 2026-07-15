@@ -280,51 +280,65 @@
 
         <!-- DIREITA -->
         <div class="col-12 col-md-7">
-          <div
-            class="card p-3 shadow-sm border-0 mb-3 menu-card"
-            data-menu-view="inicio"
-          >
-            <div class="resumo-cartoes-header">
-              <h6 class="m-0">
-                <i class="bi bi-credit-card-2-front"></i> Resumo dos Cartões
-              </h6>
-              <button
-                id="btnAtualizarPagina"
-                class="btn btn-outline-secondary btn-atualizar-pagina"
-                onclick="window.location.reload()"
-              >
-                <i class="bi bi-arrow-clockwise"></i> Atualizar
-              </button>
-            </div>
-            <div class="home-total-grid">
-              <div class="home-total-card">
-                <small><i class="bi bi-wallet2"></i> Total do Mês</small>
-                <strong>R$ <span id="total">0</span></strong>
+          <div class="inicio-dashboard menu-card" data-menu-view="inicio">
+            <div class="card p-3 shadow-sm border-0 mb-3 resumo-cartoes-card">
+              <div class="resumo-cartoes-header">
+                <h6 class="m-0">
+                  <i class="bi bi-credit-card-2-front"></i> Resumo dos Cartões
+                </h6>
+                <button
+                  id="btnAtualizarPagina"
+                  class="btn btn-outline-secondary btn-atualizar-pagina"
+                  onclick="window.location.reload()"
+                >
+                  <i class="bi bi-arrow-clockwise"></i> Atualizar
+                </button>
               </div>
-              <div class="home-total-card itau">
-                <img class="home-card-bg" src="Logos/Itau-card.png" alt="" />
-                <div class="home-card-content">
-                  <small>Itaú</small>
-                  <strong>R$ <span id="totalItau">0</span></strong>
+              <div class="home-total-grid">
+                <div class="home-total-card">
+                  <small><i class="bi bi-wallet2"></i> Total do Mês</small>
+                  <strong>R$ <span id="total">0</span></strong>
+                </div>
+                <div class="home-total-card itau">
+                  <img class="home-card-bg" src="Logos/Itau-card.png" alt="" />
+                  <div class="home-card-content">
+                    <small>Itaú</small>
+                    <strong>R$ <span id="totalItau">0</span></strong>
+                  </div>
+                </div>
+                <div class="home-total-card carrefour">
+                  <img class="home-card-bg" src="Logos/Carrefour.png" alt="" />
+                  <div class="home-card-content">
+                    <small>Carrefour</small>
+                    <strong>R$ <span id="totalCarrefour">0</span></strong>
+                  </div>
                 </div>
               </div>
-              <div class="home-total-card carrefour">
-                <img class="home-card-bg" src="Logos/Carrefour.png" alt="" />
-                <div class="home-card-content">
-                  <small>Carrefour</small>
-                  <strong>R$ <span id="totalCarrefour">0</span></strong>
-                </div>
+              <div class="inicio-actions">
+                <button
+                  type="button"
+                  id="btnLogout"
+                  class="btn btn-outline-danger btn-sair-inicio d-none"
+                  title="Sair da conta"
+                >
+                  <i class="bi bi-box-arrow-right"></i> Sair
+                </button>
               </div>
             </div>
-            <div class="inicio-actions">
-              <button
-                type="button"
-                id="btnLogout"
-                class="btn btn-outline-danger btn-sair-inicio d-none"
-                title="Sair da conta"
-              >
-                <i class="bi bi-box-arrow-right"></i> Sair
-              </button>
+
+            <div class="card p-3 shadow-sm border-0 mb-3 historico-dia-card">
+              <div class="historico-dia-header">
+                <div>
+                  <h6 class="m-0">
+                    <i class="bi bi-clock-history"></i> Histórico do Dia
+                  </h6>
+                  <small>Compras acrescentadas hoje</small>
+                </div>
+                <span id="historicoDiaTotal" class="historico-dia-total">
+                  R$ 0,00
+                </span>
+              </div>
+              <div id="historicoDiaLista" class="historico-dia-lista"></div>
             </div>
           </div>
 
@@ -2994,6 +3008,7 @@
           mesAtualCompacto.innerText = `${nomesMeses[mes]} / ${ano}`;
         }
         renderizarHistoricoMeses(compras, mes, ano, nomesMeses);
+        renderizarHistoricoDia(compras);
 
         compras.forEach((c) => {
           let dataCompra = normalizarData(c.data);
@@ -3671,6 +3686,88 @@ ${
       function formatarDataBR(dataISO) {
         const [ano, mes, dia] = normalizarData(dataISO).split("-");
         return `${dia}/${mes}/${ano}`;
+      }
+
+      function dataRegistroCompra(compra) {
+        const registro =
+          compra.syncRecebidoEm ||
+          compra.criadoEm ||
+          compra.dataCriacao ||
+          compra.createdAt ||
+          "";
+
+        if (registro) {
+          const data = new Date(registro);
+          if (!Number.isNaN(data.getTime())) return data;
+        }
+
+        const dataCompra = normalizarData(compra.data);
+        const [ano, mes, dia] = dataCompra.split("-").map(Number);
+        return new Date(ano, mes - 1, dia);
+      }
+
+      function ehRegistroDeHoje(compra) {
+        const hoje = new Date();
+        const registro = dataRegistroCompra(compra);
+
+        return (
+          registro.getFullYear() === hoje.getFullYear() &&
+          registro.getMonth() === hoje.getMonth() &&
+          registro.getDate() === hoje.getDate()
+        );
+      }
+
+      function renderizarHistoricoDia(compras) {
+        const lista = document.getElementById("historicoDiaLista");
+        const totalEl = document.getElementById("historicoDiaTotal");
+        if (!lista || !totalEl) return;
+
+        const comprasHoje = compras
+          .filter((compra) => !compraCancelada(compra))
+          .filter(ehRegistroDeHoje)
+          .sort((a, b) => dataRegistroCompra(b) - dataRegistroCompra(a));
+
+        const totalDia = comprasHoje.reduce(
+          (total, compra) => total + Number(compra.valor || 0),
+          0,
+        );
+        totalEl.innerText = formatarMoeda(totalDia);
+
+        if (!comprasHoje.length) {
+          lista.innerHTML = `
+            <div class="historico-dia-vazio">
+              Nenhuma compra acrescentada hoje.
+            </div>
+          `;
+          return;
+        }
+
+        lista.innerHTML = comprasHoje
+          .slice(0, 12)
+          .map((compra) => {
+            const registro = dataRegistroCompra(compra);
+            const horario = registro.toLocaleTimeString("pt-BR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            const origem = compra.origemSync
+              ? "Pluggy"
+              : compra.syncRecebidoEm
+                ? "API"
+                : "Manual";
+
+            return `
+              <div class="historico-dia-item">
+                <span class="historico-dia-icone">${getIconeCartao(compra.cartao)}</span>
+                <div class="historico-dia-info">
+                  <strong>${escapeHTML(compra.descricao || "Compra")}</strong>
+                  <small>${horario} · ${origem} · ${escapeHTML(compra.tipo || "Outros")}</small>
+                </div>
+                <span class="historico-dia-valor">${formatarMoeda(compra.valor)}</span>
+              </div>
+            `;
+          })
+          .join("");
       }
 
       function obterLancamentosParaRelatorio(mes, ano, cartaoFiltro) {
