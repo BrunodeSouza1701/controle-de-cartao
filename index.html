@@ -2261,6 +2261,10 @@
           parcelas: parcelas,
           data: data.value,
           observacao: observacao.value.trim(),
+          criadoEm:
+            editandoIndex !== null
+              ? compras[editandoIndex].criadoEm || new Date().toISOString()
+              : new Date().toISOString(),
           ordem:
             editandoIndex !== null &&
             mesmaDataCompra(compras[editandoIndex], { data: data.value })
