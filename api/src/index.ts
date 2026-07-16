@@ -70,6 +70,8 @@ type DuplicateCandidate = {
   estabelecimentoKey: string;
 };
 
+const DUPLICATE_DATE_TOLERANCE_DAYS = 7;
+
 type PluggyAccount = Record<string, unknown>;
 
 type PluggyTransaction = Record<string, unknown>;
@@ -615,11 +617,11 @@ async function fingerprintsFromExistingCompra(
   return { exact, legacyNoTime };
 }
 
-function duplicateCandidateFromExistingCompra(
+function duplicateCandidatesFromExistingCompra(
   compra: unknown,
-): DuplicateCandidate | null {
+): DuplicateCandidate[] {
   if (!compra || typeof compra !== "object" || Array.isArray(compra)) {
-    return null;
+    return [];
   }
 
   const record = compra as CompraRecord;
@@ -633,8 +635,8 @@ function duplicateCandidateFromExistingCompra(
   );
 
   return normalized.compra
-    ? duplicateCandidateFromCompra(normalized.compra)
-    : null;
+    ? duplicateCandidatesFromCompra(normalized.compra)
+    : [];
 }
 
 function parseCarrefourSms(texto: string): {
@@ -929,7 +931,12 @@ function addDaysToDateOnly(dateOnlyValue: string, days: number): string {
 function duplicateBucketKeysWithDateTolerance(
   compra: NormalizedSyncCompra,
 ): string[] {
-  return [-1, 0, 1].map((offset) =>
+  const offsets = Array.from(
+    { length: DUPLICATE_DATE_TOLERANCE_DAYS * 2 + 1 },
+    (_, index) => index - DUPLICATE_DATE_TOLERANCE_DAYS,
+  );
+
+  return offsets.map((offset) =>
     duplicateBucketKey({
       banco: compra.banco,
       cartao: compra.cartao,
@@ -951,6 +958,29 @@ function duplicateCandidateFromCompra(
     ].join("|"),
     estabelecimentoKey: compra.estabelecimentoKey,
   };
+}
+
+function duplicateCandidatesFromCompra(
+  compra: NormalizedSyncCompra,
+): DuplicateCandidate[] {
+  const candidates = [duplicateCandidateFromCompra(compra)];
+  const valorParcelaCentavos =
+    compra.parcelas > 1
+      ? Math.round((compra.valor / compra.parcelas) * 100)
+      : compra.valorCentavos;
+
+  if (
+    compra.parcelas > 1 &&
+    valorParcelaCentavos > 0 &&
+    valorParcelaCentavos !== compra.valorCentavos
+  ) {
+    candidates.push({
+      ...duplicateCandidateFromCompra(compra),
+      valorCentavos: valorParcelaCentavos,
+    });
+  }
+
+  return candidates;
 }
 
 async function syncComprasFromHistory(
@@ -1028,8 +1058,7 @@ async function syncComprasFromHistory(
     );
   });
   state.compras
-    .map(duplicateCandidateFromExistingCompra)
-    .filter((candidate): candidate is DuplicateCandidate => !!candidate)
+    .flatMap(duplicateCandidatesFromExistingCompra)
     .forEach((candidate) => {
       const key = duplicateBucketKeyFromCandidate(candidate);
       const list = duplicateCandidatesByBucket.get(key) || [];
@@ -1111,10 +1140,12 @@ async function syncComprasFromHistory(
     exactFingerprints.add(fingerprints.noTime);
     batchFingerprints.add(fingerprints.primary);
     batchFingerprints.add(fingerprints.noTime);
-    const candidateKey = duplicateBucketKey(compra);
-    const list = duplicateCandidatesByBucket.get(candidateKey) || [];
-    list.push(duplicateCandidateFromCompra(compra));
-    duplicateCandidatesByBucket.set(candidateKey, list);
+    duplicateCandidatesFromCompra(compra).forEach((candidate) => {
+      const candidateKey = duplicateBucketKeyFromCandidate(candidate);
+      const list = duplicateCandidatesByBucket.get(candidateKey) || [];
+      list.push(candidate);
+      duplicateCandidatesByBucket.set(candidateKey, list);
+    });
     comprasAdicionadas.push({
       id,
       data: compra.data,
