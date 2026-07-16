@@ -4,3 +4,4 @@
 #   (Settings → Environment variables). Sem elas, api-config.js fica vazio e não há login/sync.
 name = "controle-cartao"
 compatibility_date = "2024-12-01"
+pages_build_output_dir = "."

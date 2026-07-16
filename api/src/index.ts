@@ -217,11 +217,13 @@ function parseItauNotification(texto: string): {
   tipo: string;
   cartao: string;
   tipoCompra: string;
+  parcelas: number;
   debug: Record<string, unknown>;
 } {
   const raw = texto.replace(/\s+/g, " ").trim();
   const valorMatch = raw.match(/(?:valor\s*)?R(?:\$|S)\s*([\d.]+,\d{2})/i);
   const dataMatch = raw.match(/(\d{2})\/(\d{2})(?:\/(\d{4}))?/);
+  const parcelasMatch = raw.match(/\bem\s+(\d{1,2})x\s+em\b/i);
   const oldFormatDescMatch =
     raw.match(
       /final\s+\d+\s*-\s*(.*?)\s*(?:-\s*)?(?:valor\s*)?R(?:\$|S)\s*/i,
@@ -229,8 +231,16 @@ function parseItauNotification(texto: string): {
   const newFormatDescMatch = raw.match(
     /compra\s+aprovada\s+de\s+R(?:\$|S)\s*[\d.]+,\d{2}\s+em\s+(.+?)\s+no\s+dia\s+\d{2}\/\d{2}(?:\/\d{4})?/i,
   );
-  const descMatch = oldFormatDescMatch || newFormatDescMatch;
+  const installmentFormatDescMatch = raw.match(
+    /compra\s+parcelada\s+aprovada\s+de\s+R(?:\$|S)\s*[\d.]+,\d{2}\s+em\s+\d{1,2}x\s+em\s+(.+?)\s+no\s+dia\s+\d{2}\/\d{2}(?:\/\d{4})?/i,
+  );
+  const descMatch =
+    oldFormatDescMatch || newFormatDescMatch || installmentFormatDescMatch;
   const ano = dataMatch?.[3] || String(new Date().getUTCFullYear());
+  const parcelas = Math.max(
+    1,
+    Math.floor(Number(parcelasMatch?.[1] || 1)) || 1,
+  );
 
   const debug = {
     parser: "itau",
@@ -238,11 +248,15 @@ function parseItauNotification(texto: string): {
     achouValor: !!valorMatch,
     achouData: !!dataMatch,
     achouDescricao: !!descMatch,
+    achouParcelas: !!parcelasMatch,
+    parcelas,
     formatoDescricao: oldFormatDescMatch
       ? "itau-antigo"
       : newFormatDescMatch
         ? "itau-novo-push"
-        : "nao-reconhecido",
+        : installmentFormatDescMatch
+          ? "itau-novo-push-parcelado"
+          : "nao-reconhecido",
   };
 
   return {
@@ -251,7 +265,8 @@ function parseItauNotification(texto: string): {
     descricao: descMatch ? formatDescription(descMatch[1]) : "",
     tipo: "Outros",
     cartao: "Itaú",
-    tipoCompra: "avista",
+    tipoCompra: parcelas > 1 ? "parcelado" : "avista",
+    parcelas,
     debug,
   };
 }
@@ -629,6 +644,7 @@ function parseCarrefourSms(texto: string): {
   tipo: string;
   cartao: string;
   tipoCompra: string;
+  parcelas: number;
   debug: Record<string, unknown>;
 } {
   const raw = texto.replace(/\s+/g, " ").trim();
@@ -652,6 +668,7 @@ function parseCarrefourSms(texto: string): {
     tipo: "Outros",
     cartao: "Carrefour",
     tipoCompra: "avista",
+    parcelas: 1,
     debug,
   };
 }
@@ -1652,28 +1669,42 @@ export default {
           );
         }
 
-        const state = await readState(env);
-        compraExtraida.tipo = inferCategory(
-          compraExtraida.descricao,
-          state.regrasCategoria,
-        );
-        const novaCompra = {
-          id: Date.now(),
-          data: compraExtraida.data,
-          valor: compraExtraida.valor,
-          descricao: compraExtraida.descricao,
-          tipo: compraExtraida.tipo,
+        const sync = await syncComprasFromHistory(env, {
+          banco: cartaoKey,
           cartao: compraExtraida.cartao,
-          tipoCompra: compraExtraida.tipoCompra,
-          parcelas: 1,
-          parcelaAtual: 1,
-        };
+          origem: "macrodroid-notificacao",
+          compras: [
+            {
+              data: compraExtraida.data,
+              valor: compraExtraida.valor,
+              descricao: compraExtraida.descricao,
+              cartao: compraExtraida.cartao,
+              banco: cartaoKey,
+              tipoCompra: compraExtraida.tipoCompra,
+              parcelas: compraExtraida.parcelas,
+              parcelaAtual: 1,
+            },
+          ],
+        });
 
-        state.compras.push(novaCompra);
-        await writeState(env, state);
+        const novaCompra = sync.comprasAdicionadas[0] || null;
+        if (!novaCompra) {
+          return json(
+            {
+              ok: true,
+              duplicada: true,
+              message: "compra já existia e não foi adicionada novamente",
+              sync,
+              debug: compraExtraida.debug,
+            },
+            env,
+            req,
+            200,
+          );
+        }
 
         return json(
-          { ok: true, compra: novaCompra, debug: compraExtraida.debug },
+          { ok: true, compra: novaCompra, sync, debug: compraExtraida.debug },
           env,
           req,
           201,
