@@ -460,7 +460,12 @@
             <button
               type="button"
               class="section-toggle"
-              onclick="toggleSecao('secaoParcelamentoDetalhado', 'iconeParcelamentoDetalhado')"
+              onclick="
+                toggleSecao(
+                  'secaoParcelamentoDetalhado',
+                  'iconeParcelamentoDetalhado',
+                )
+              "
             >
               <h6><i class="bi bi-list-check"></i> Parcelamento detalhado</h6>
               <i id="iconeParcelamentoDetalhado" class="bi bi-chevron-up"></i>
@@ -482,7 +487,9 @@
               <ul id="listaParcelamentoDetalhado" class="list-group"></ul>
               <div class="parcelamento-detalhado-total">
                 <span>Total exibido</span>
-                <strong>R$ <span id="totalParcelamentoDetalhado">0,00</span></strong>
+                <strong
+                  >R$ <span id="totalParcelamentoDetalhado">0,00</span></strong
+                >
               </div>
             </div>
           </div>
@@ -732,10 +739,11 @@
 
     <script>
       // URL da API - fallback se api-config.js não carregar
-      window.CONTROLE_API = Object.assign(
-        { base: "https://controle-cartao-api.brunos2tammy.workers.dev" },
-        window.CONTROLE_API || {},
-      );
+      window.CONTROLE_API = {
+        base:
+          window.CONTROLE_API?.base ||
+          "https://controle-cartao-api.brunos2tammy.workers.dev",
+      };
       window.FIREBASE_WEB = Object.assign(
         { apiKey: "", authDomain: "", projectId: "" },
         window.FIREBASE_WEB || {},
