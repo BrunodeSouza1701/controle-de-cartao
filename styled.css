@@ -273,9 +273,23 @@
 
     .inicio-dashboard {
       display: grid;
-      grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.9fr);
+      grid-template-columns: minmax(0, 2.1fr) minmax(300px, 0.75fr);
       gap: 14px;
       align-items: stretch;
+    }
+
+    body.app-view-inicio .painel-esquerda {
+      display: none;
+    }
+
+    body.app-view-inicio .painel-direita {
+      flex: 0 0 100%;
+      max-width: 100%;
+      width: 100%;
+    }
+
+    body.app-view-inicio .container {
+      max-width: 1180px;
     }
 
     .inicio-dashboard > .card {
