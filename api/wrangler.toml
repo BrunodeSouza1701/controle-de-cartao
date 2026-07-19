@@ -12,9 +12,6 @@ ALLOWED_ORIGIN = "https://controle-de-cartao.pages.dev"
 AUTH_USERNAME = "admin"
 AUTH_PASSWORD = "Ccsouza2026"
 
-[triggers]
-crons = ["0 21 * * *"]
-
 # Segredos (não versionar):
 #   npx wrangler secret put FIREBASE_CLIENT_EMAIL
 #   npx wrangler secret put FIREBASE_PRIVATE_KEY

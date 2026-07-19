@@ -692,10 +692,60 @@
               class="section-toggle"
               onclick="toggleSecao('secaoFechamento', 'iconeFechamento')"
             >
-              <h6><i class="bi bi-calendar2-week"></i> Fechamento do cartão</h6>
+              <h6><i class="bi bi-sliders"></i> Opções</h6>
               <i id="iconeFechamento" class="bi bi-chevron-up"></i>
             </button>
             <div id="secaoFechamento" class="section-content">
+              <div class="opcoes-bloco sincronizar-pluggy-card">
+                <div class="opcoes-bloco-header">
+                  <div>
+                    <strong>
+                      <i class="bi bi-cloud-arrow-down"></i> Sincronizar Pluggy
+                    </strong>
+                    <small>Escolha o período que deseja conferir</small>
+                  </div>
+                </div>
+                <label for="pluggyDataInicio" class="form-label small mb-1">
+                  Início
+                </label>
+                <input
+                  id="pluggyDataInicio"
+                  type="date"
+                  class="form-control mb-2"
+                />
+                <label for="pluggyDataFim" class="form-label small mb-1">
+                  Término
+                </label>
+                <input
+                  id="pluggyDataFim"
+                  type="date"
+                  class="form-control mb-2"
+                />
+                <button
+                  id="btnSincronizarPluggy"
+                  type="button"
+                  onclick="sincronizarPluggyManual()"
+                  class="btn btn-outline-primary w-100 rounded-pill"
+                >
+                  <i class="bi bi-arrow-repeat"></i> Sincronizar
+                </button>
+                <div id="pluggySyncResultado" class="pluggy-sync-resultado">
+                  <span class="text-muted">
+                    Última sincronização:
+                    <strong id="pluggyUltimaSync">Nunca executada</strong>
+                  </span>
+                </div>
+              </div>
+
+              <div class="opcoes-bloco">
+                <div class="opcoes-bloco-header">
+                  <div>
+                    <strong>
+                      <i class="bi bi-calendar2-week"></i> Fechamento do cartão
+                    </strong>
+                    <small>Configure a regra de fechamento da fatura</small>
+                  </div>
+                </div>
               <select
                 id="fechamentoCartao"
                 class="form-select mb-2"
@@ -731,6 +781,7 @@
                 id="resumoFechamento"
                 class="d-block text-muted mt-2"
               ></small>
+              </div>
             </div>
           </div>
         </div>
@@ -738,7 +789,10 @@
     </div>
 
     <script>
-      // URL da API - fallback se api-config.js não carregar
+      // Fallback da URL da API.
+      // O api-config.js é gerado durante o build. Se as variáveis de ambiente
+      // do Cloudflare Pages não forem disponibilizadas, "base" pode vir vazia.
+      // Neste caso, utilizamos a URL pública do Worker para manter o aplicativo funcional.
       window.CONTROLE_API = {
         base:
           window.CONTROLE_API?.base ||
@@ -854,6 +908,141 @@
           key === "regrasCategoria"
         )
           schedulePushToCloud();
+      }
+
+      function dataLocalISO(data = new Date()) {
+        return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
+      }
+
+      function renderizarUltimaSyncPluggy() {
+        const alvo = document.getElementById("pluggyUltimaSync");
+        if (!alvo) return;
+
+        const ultima = localStorage.getItem("pluggyUltimaSync");
+        alvo.innerText = ultima
+          ? new Date(ultima).toLocaleString("pt-BR")
+          : "Nunca executada";
+      }
+
+      function preencherResultadoPluggy(result) {
+        const box = document.getElementById("pluggySyncResultado");
+        if (!box) return;
+
+        const sync = result?.sync || {};
+        const pluggy = result?.pluggy || {};
+        const ultima = localStorage.getItem("pluggyUltimaSync");
+
+        box.innerHTML = `
+          <span class="text-muted">
+            Última sincronização:
+            <strong id="pluggyUltimaSync">${ultima ? new Date(ultima).toLocaleString("pt-BR") : "Nunca executada"}</strong>
+          </span>
+          <span class="text-muted">
+            Período consultado:
+            <strong>${escapeHTML(pluggy.dateFrom || "")} até ${escapeHTML(pluggy.dateTo || "")}</strong>
+          </span>
+          <div class="pluggy-sync-metricas">
+            <div class="pluggy-sync-metrica">
+              ${Number(sync.adicionadas || 0)}
+              <span>novas</span>
+            </div>
+            <div class="pluggy-sync-metrica">
+              ${Number(sync.existentes || 0)}
+              <span>existentes</span>
+            </div>
+            <div class="pluggy-sync-metrica">
+              ${Number(sync.duplicadasNoLote || 0)}
+              <span>duplicadas</span>
+            </div>
+            <div class="pluggy-sync-metrica">
+              ${Number(sync.erros || 0)}
+              <span>erros</span>
+            </div>
+          </div>
+        `;
+      }
+
+      async function sincronizarPluggyManual() {
+        const inicio = pluggyDataInicio.value;
+        const fim = pluggyDataFim.value;
+
+        if (!inicio || !fim) {
+          avisoApp(
+            "Período obrigatório",
+            "Informe a data de início e a data de término da sincronização.",
+          );
+          return;
+        }
+
+        if (inicio > fim) {
+          avisoApp(
+            "Período inválido",
+            "A data de início não pode ser maior que a data de término.",
+          );
+          return;
+        }
+
+        if (!(await cloudSyncPossible())) {
+          avisoApp(
+            "Login necessário",
+            "Entre novamente no app para sincronizar com o Pluggy.",
+          );
+          return;
+        }
+
+        const botao = document.getElementById("btnSincronizarPluggy");
+        const textoOriginal = botao?.innerHTML;
+        if (botao) {
+          botao.disabled = true;
+          botao.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Sincronizando`;
+        }
+
+        try {
+          const base = window.CONTROLE_API.base.replace(/\/$/, "");
+          const resposta = await fetch(`${base}/pluggy/sync-itau`, {
+            method: "POST",
+            headers: {
+              Authorization: currentAuthCredentials,
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({ dateFrom: inicio, dateTo: fim }),
+          });
+
+          const resultado = await resposta.json().catch(() => ({}));
+          if (!resposta.ok) {
+            throw new Error(
+              resultado.message ||
+                resultado.error ||
+                `Erro HTTP ${resposta.status}`,
+            );
+          }
+
+          localStorage.setItem("pluggyUltimaSync", new Date().toISOString());
+          preencherResultadoPluggy(resultado);
+          await pullFromCloudIfEnabled();
+          mostrar();
+
+          const novas = Number(resultado?.sync?.adicionadas || 0);
+          avisoApp(
+            "Sincronização concluída",
+            novas > 0
+              ? `${novas} compra(s) nova(s) foram adicionadas.`
+              : "Nenhuma compra nova foi encontrada no período.",
+          );
+        } catch (erro) {
+          avisoApp(
+            "Erro na sincronização",
+            erro instanceof Error ? erro.message : String(erro),
+          );
+        } finally {
+          if (botao) {
+            botao.disabled = false;
+            botao.innerHTML =
+              textoOriginal || `<i class="bi bi-arrow-repeat"></i> Sincronizar`;
+          }
+          renderizarUltimaSyncPluggy();
+        }
       }
 
       // ========== AUTENTICAÇÃO BASIC AUTH ==========
@@ -4153,6 +4342,12 @@ ${
 
         const _hojeInit = new Date();
         data.value = `${_hojeInit.getFullYear()}-${String(_hojeInit.getMonth() + 1).padStart(2, "0")}-${String(_hojeInit.getDate()).padStart(2, "0")}`;
+        if (window.pluggyDataInicio && window.pluggyDataFim) {
+          const hojeISO = dataLocalISO(_hojeInit);
+          pluggyDataInicio.value = hojeISO;
+          pluggyDataFim.value = hojeISO;
+          renderizarUltimaSyncPluggy();
+        }
 
         mesFiltro.onchange = mostrar;
         anoFiltro.onchange = mostrar;
@@ -4239,8 +4434,8 @@ ${
         data-menu-target="fechamento"
         onclick="mostrarMenu('fechamento')"
       >
-        <i class="bi bi-calendar2-week"></i>
-        <span>Fechamento</span>
+        <i class="bi bi-sliders"></i>
+        <span>Opções</span>
       </button>
     </nav>
 
